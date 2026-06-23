@@ -23,6 +23,7 @@ export interface Assignment {
 export interface Notice {
   id: number;
   title: string;
+  content?: string;
   date: string;
   views: number;
   isPinned: boolean;
