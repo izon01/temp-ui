@@ -4,6 +4,59 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 
+// ─── 과제 목록 조회 (제출 여부 포함) ────────────────────────────────────────
+export async function getAssignments(participantId?: string) {
+  const rows = await sql`
+    SELECT
+      a.id,
+      a.week,
+      a.title,
+      a.description,
+      TO_CHAR(a.deadline, 'YYYY-MM-DD') AS deadline,
+      (a.deadline - CURRENT_DATE)       AS days_left,
+      CASE WHEN s.id IS NOT NULL THEN true ELSE false END AS submitted
+    FROM assignments a
+    LEFT JOIN assignment_submissions s
+      ON s.assignment_id = a.id
+     AND s.participant_id = ${participantId ?? null}
+    ORDER BY a.week DESC, a.created_at DESC
+  `;
+  return rows as Array<{
+    id: number; week: number; title: string; description: string;
+    deadline: string; days_left: number | null; submitted: boolean;
+  }>;
+}
+
+// ─── 과제 등록 (관리자 전용) ─────────────────────────────────────────────────
+export async function createAssignment(formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== 'admin') {
+    return { success: false, error: '관리자만 과제를 등록할 수 있습니다.' };
+  }
+
+  const week        = parseInt(String(formData.get('week')        ?? '0'), 10);
+  const title       = String(formData.get('title')       ?? '').trim();
+  const description = String(formData.get('description') ?? '').trim();
+  const deadline    = String(formData.get('deadline')    ?? '').trim();
+
+  if (!week || !title || !deadline) {
+    return { success: false, error: '주차, 과제명, 제출 기한은 필수입니다.' };
+  }
+
+  try {
+    await sql`
+      INSERT INTO assignments (week, title, description, deadline, created_by)
+      VALUES (${week}, ${title}, ${description}, ${deadline}, ${session.user.id})
+    `;
+    revalidatePath('/education');
+    return { success: true };
+  } catch (error) {
+    console.error('[createAssignment]', error);
+    return { success: false, error: '등록 중 오류가 발생했습니다.' };
+  }
+}
+
+// ─── 과제 제출 ───────────────────────────────────────────────────────────────
 export async function submitAssignmentAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) {
