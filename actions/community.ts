@@ -10,8 +10,7 @@ export async function getCommunityPosts(q?: string) {
     ? await sql`
         SELECT id, category, title, content, author_name AS "authorName",
                has_image AS "hasImage", comments,
-               TO_CHAR(created_at, 'YYYY-MM-DD') AS date,
-               NOW() - created_at AS age
+               TO_CHAR(created_at, 'YYYY-MM-DD') AS date
         FROM community_posts
         WHERE title ILIKE ${'%' + query + '%'}
            OR content ILIKE ${'%' + query + '%'}
@@ -20,8 +19,7 @@ export async function getCommunityPosts(q?: string) {
     : await sql`
         SELECT id, category, title, content, author_name AS "authorName",
                has_image AS "hasImage", comments,
-               TO_CHAR(created_at, 'YYYY-MM-DD') AS date,
-               NOW() - created_at AS age
+               TO_CHAR(created_at, 'YYYY-MM-DD') AS date
         FROM community_posts
         ORDER BY created_at DESC
       `;
