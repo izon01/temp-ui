@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useApp } from '@/contexts/AppContext';
 import { useModal } from '@/components/Modals/ModalContext';
 
@@ -8,6 +9,8 @@ export default function NoticesPage() {
   const [activeFilter, setActiveFilter] = useState('전체');
   const { notices } = useApp();
   const { openNoticeDetail } = useModal();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'admin';
   const filters = ['전체', '필독', '프로그램'];
 
   const filtered = activeFilter === '전체' ? notices : notices.filter(n => n.category === activeFilter);
@@ -20,10 +23,12 @@ export default function NoticesPage() {
           <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>공지사항</h1>
           <p className="text-[#434653] mt-1">경북청년인재스쿨의 새로운 소식과 안내사항을 확인하세요.</p>
         </div>
-        <button className="flex items-center gap-2 bg-[#0047ab] text-white px-6 py-3 rounded-lg text-sm font-semibold hover:opacity-90 transition-all active:scale-95 shadow-sm">
-          <span className="material-symbols-outlined text-[20px]">edit</span>
-          공지 등록
-        </button>
+        {isAdmin && (
+          <button className="flex items-center gap-2 bg-[#0047ab] text-white px-6 py-3 rounded-lg text-sm font-semibold hover:opacity-90 transition-all active:scale-95 shadow-sm">
+            <span className="material-symbols-outlined text-[20px]">edit</span>
+            공지 등록
+          </button>
+        )}
       </section>
 
       {/* Bento top */}
