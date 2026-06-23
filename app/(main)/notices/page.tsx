@@ -1,7 +1,12 @@
 import { getNotices } from '@/actions/notices';
 import NoticesClient from './NoticesClient';
 
-export default async function NoticesPage() {
-  const dbNotices = await getNotices() ?? [];
-  return <NoticesClient initialNotices={dbNotices} />;
+interface Props {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function NoticesPage({ searchParams }: Props) {
+  const { q } = await searchParams;
+  const dbNotices = await getNotices(q) ?? [];
+  return <NoticesClient initialNotices={dbNotices} searchQuery={q ?? ''} />;
 }

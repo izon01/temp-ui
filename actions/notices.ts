@@ -15,7 +15,11 @@ export async function createNotice(formData: FormData) {
   const category = String(formData.get('category') ?? '공지').trim();
   const isPinned = formData.get('isPinned') === 'true';
   const iconMap: Record<string, string> = {
-    '공지': 'campaign', '필독': 'notification_important', '프로그램': 'school',
+    '공지': 'campaign',
+    '필독': 'notification_important',
+    '프로그램': 'school',
+    '취업정보': 'work',
+    '기타': 'info',
   };
   const icon = iconMap[category] ?? 'campaign';
 
@@ -36,14 +40,24 @@ export async function createNotice(formData: FormData) {
   }
 }
 
-export async function getNotices() {
+export async function getNotices(q?: string) {
+  const query = q?.trim() ?? '';
   try {
-    const rows = await sql`
-      SELECT id, title, category, is_pinned AS "isPinned", icon, views,
-             TO_CHAR(created_at, 'YYYY.MM.DD') AS date
-      FROM notices
-      ORDER BY is_pinned DESC, created_at DESC
-    `;
+    const rows = query
+      ? await sql`
+          SELECT id, title, category, is_pinned AS "isPinned", icon, views,
+                 TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+          FROM notices
+          WHERE title   ILIKE ${'%' + query + '%'}
+             OR content ILIKE ${'%' + query + '%'}
+          ORDER BY is_pinned DESC, created_at DESC
+        `
+      : await sql`
+          SELECT id, title, category, is_pinned AS "isPinned", icon, views,
+                 TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+          FROM notices
+          ORDER BY is_pinned DESC, created_at DESC
+        `;
     return rows as Array<{
       id: number; title: string; category: string;
       isPinned: boolean; icon: string; views: number; date: string;

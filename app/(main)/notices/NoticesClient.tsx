@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
 
@@ -9,21 +10,34 @@ interface Notice {
   isPinned: boolean; icon: string; views: number; date: string;
 }
 
-export default function NoticesClient({ initialNotices }: { initialNotices: Notice[] }) {
+interface Props {
+  initialNotices: Notice[];
+  searchQuery: string;
+}
+
+const FILTERS = ['전체', '필독', '공지', '프로그램', '취업정보', '기타'];
+
+export default function NoticesClient({ initialNotices, searchQuery }: Props) {
   const [activeFilter, setActiveFilter] = useState('전체');
-  // 새로 작성한 공지 (옵티미스틱 업데이트용)
-  const [localNotices, setLocalNotices] = useState<Notice[]>([]);
+  const [inputValue, setInputValue] = useState(searchQuery);
   const { openNoticeDetail, openWriteNotice } = useModal();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
-  const filters = ['전체', '필독', '프로그램'];
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // DB 목록 + 로컬 옵티미스틱 목록 병합
-  const allNotices = [...localNotices, ...initialNotices];
-  const filtered = activeFilter === '전체' ? allNotices : allNotices.filter(n => n.category === activeFilter);
+  const handleSearch = () => {
+    const q = inputRef.current?.value.trim() ?? '';
+    router.push(q ? `/notices?q=${encodeURIComponent(q)}` : '/notices');
+  };
 
-  // NoticeWriteSlideOver에서 호출할 수 있도록 context를 통해 addOptimistic 제공
-  // (revalidatePath가 완료되면 DB 데이터로 교체됨)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  const filtered = activeFilter === '전체'
+    ? initialNotices
+    : initialNotices.filter(n => n.category === activeFilter);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
@@ -48,9 +62,11 @@ export default function NoticesClient({ initialNotices }: { initialNotices: Noti
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-2 bg-[#f3f4f5] rounded-xl p-6 flex flex-col justify-between overflow-hidden relative group min-h-[120px]">
           <div className="z-10">
-            <span className="bg-[#00327d] text-white text-xs font-bold px-2 py-1 rounded-full mb-3 inline-block">HOT NEWS</span>
+            <span className="bg-[#00327d] text-white text-xs font-bold px-2 py-1 rounded-full mb-3 inline-block">
+              {searchQuery ? `검색: "${searchQuery}"` : 'HOT NEWS'}
+            </span>
             <h3 className="font-bold text-lg text-[#191c1d] mb-1" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-              {filtered[0]?.title ?? '2026 하반기 인재 양성 프로그램 선발 안내'}
+              {filtered[0]?.title ?? '등록된 공지가 없습니다'}
             </h3>
             <p className="text-[#434653] text-sm">지금 바로 지원하고 경북의 미래를 함께 만들어갈 기회를 잡으세요!</p>
           </div>
@@ -59,8 +75,10 @@ export default function NoticesClient({ initialNotices }: { initialNotices: Noti
           </div>
         </div>
         <div className="bg-[#e7e8e9] rounded-xl p-6 flex flex-col justify-center items-center text-center">
-          <span className="text-[#434653] text-xs uppercase tracking-wider mb-1">전체 게시글</span>
-          <span className="text-[40px] font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{allNotices.length}</span>
+          <span className="text-[#434653] text-xs uppercase tracking-wider mb-1">
+            {searchQuery ? '검색 결과' : '전체 게시글'}
+          </span>
+          <span className="text-[40px] font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{filtered.length}</span>
           <span className="text-[#737784] text-xs">DB 실시간 연동</span>
         </div>
       </section>
@@ -68,15 +86,32 @@ export default function NoticesClient({ initialNotices }: { initialNotices: Noti
       {/* Search & filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-[280px]">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784]">search</span>
+          <span
+            onClick={handleSearch}
+            className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784] cursor-pointer hover:text-[#00327d] transition-colors"
+          >
+            search
+          </span>
           <input
+            ref={inputRef}
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full pl-12 pr-4 py-3 bg-white border border-[#c3c6d5] rounded-xl focus:ring-2 focus:ring-[#00327d] focus:border-transparent outline-none transition-all"
-            placeholder="제목 또는 내용으로 검색"
+            placeholder="제목 또는 내용으로 검색 후 Enter"
             type="text"
           />
+          {inputValue && (
+            <button
+              onClick={() => { setInputValue(''); router.push('/notices'); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737784] hover:text-[#191c1d]"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          )}
         </div>
-        <div className="flex gap-2">
-          {filters.map(f => (
+        <div className="flex gap-2 flex-wrap">
+          {FILTERS.map(f => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
@@ -94,8 +129,13 @@ export default function NoticesClient({ initialNotices }: { initialNotices: Noti
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#c3c6d5]">
         {filtered.length === 0 ? (
           <div className="py-20 text-center text-[#737784]">
-            <span className="material-symbols-outlined text-[48px] block mb-2">inbox</span>
-            등록된 공지사항이 없습니다.
+            <span className="material-symbols-outlined text-[48px] block mb-2">
+              {searchQuery ? 'search_off' : 'inbox'}
+            </span>
+            {searchQuery
+              ? <><p className="font-semibold">"{searchQuery}" 검색 결과가 없습니다.</p><p className="text-sm mt-1">다른 검색어를 입력해보세요.</p></>
+              : <p>등록된 공지사항이 없습니다.</p>
+            }
           </div>
         ) : (
           filtered.map((n, idx) => (
@@ -110,10 +150,9 @@ export default function NoticesClient({ initialNotices }: { initialNotices: Noti
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  {n.isPinned && (
-                    <span className="text-[#b7102a] font-bold text-xs px-2 py-0.5 bg-[#ffdad8] rounded-full">[필독]</span>
-                  )}
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {n.isPinned && <span className="text-[#b7102a] font-bold text-xs px-2 py-0.5 bg-[#ffdad8] rounded-full">[필독]</span>}
+                  <span className="text-xs px-2 py-0.5 bg-[#e7e8e9] text-[#434653] rounded-full">{n.category}</span>
                   <span className="font-semibold text-[#191c1d] truncate">{n.title}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[#434653] text-xs">

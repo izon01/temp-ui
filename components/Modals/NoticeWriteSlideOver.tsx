@@ -6,9 +6,10 @@ import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createNotice } from '@/actions/notices';
 
-const categories = ['공지', '필독', '프로그램'];
+const categories = ['공지', '필독', '프로그램', '취업정보', '기타'];
 const iconMap: Record<string, string> = {
   '공지': 'campaign', '필독': 'notification_important', '프로그램': 'school',
+  '취업정보': 'work', '기타': 'info',
 };
 
 export default function NoticeWriteSlideOver() {
