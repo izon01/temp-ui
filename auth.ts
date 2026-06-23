@@ -30,22 +30,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: '비밀번호', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        const email    = String(credentials?.email    ?? '').trim();
+        const password = String(credentials?.password ?? '').trim();
+        if (!email || !password) return null;
 
         // TODO: Vercel Postgres 연결 후 아래 코드로 교체
         // import { sql } from '@vercel/postgres';
         // const { rows } = await sql`
         //   SELECT id, email, name, role, password_hash
-        //   FROM participants WHERE email = ${credentials.email}
+        //   FROM participants WHERE email = ${email}
         // `;
         // const user = rows[0];
         // if (!user) return null;
-        // const valid = await bcrypt.compare(credentials.password as string, user.password_hash);
+        // const valid = await bcrypt.compare(password, user.password_hash);
         // if (!valid) return null;
         // return { id: String(user.id), email: user.email, name: user.name, role: user.role };
 
         const user = mockUsers.find(
-          u => u.email === credentials.email && u.password === credentials.password
+          u => u.email === email && u.password === password
         );
         if (!user) return null;
         return { id: user.id, email: user.email, name: user.name, role: user.role };
