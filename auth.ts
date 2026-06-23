@@ -19,22 +19,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email:    { label: '이메일',   type: 'email'    },
+        loginId:  { label: '아이디',   type: 'text'     },
         password: { label: '비밀번호', type: 'password' },
       },
       async authorize(credentials) {
-        const email    = String(credentials?.email    ?? '').trim();
+        const loginId  = String(credentials?.loginId  ?? '').trim();
         const password = String(credentials?.password ?? '').trim();
-        if (!email || !password) return null;
+        if (!loginId || !password) return null;
 
         try {
           const { sql } = await import('@/lib/db');
-          const rows = await sql`
-            SELECT id, email, name, role, password_hash
-            FROM participants
-            WHERE email = ${email}
-            LIMIT 1
-          `;
+
+          // login_id 컬럼으로 조회 (없으면 email fallback)
+          let rows;
+          try {
+            rows = await sql`
+              SELECT id, email, login_id, name, role, password_hash
+              FROM participants
+              WHERE login_id = ${loginId}
+              LIMIT 1
+            `;
+          } catch {
+            // login_id 컬럼이 아직 없을 경우 email 앞부분으로 fallback
+            rows = await sql`
+              SELECT id, email, name, role, password_hash
+              FROM participants
+              WHERE split_part(email, '@', 1) = ${loginId}
+              LIMIT 1
+            `;
+          }
+
           const user = rows[0];
           if (!user) return null;
 
