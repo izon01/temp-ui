@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { communityPosts, CommunityPost } from '@/data/mockData';
+import { useApp } from '@/contexts/AppContext';
 import { useModal } from '@/components/Modals/ModalContext';
+import type { CommunityPost } from '@/data/mockData';
 
 const categoryStyle: Record<CommunityPost['category'], { bg: string; text: string }> = {
   '스터디모집': { bg: 'bg-[#8cf5e4]', text: 'text-[#00201c]' },
@@ -12,10 +13,11 @@ const categoryStyle: Record<CommunityPost['category'], { bg: string; text: strin
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState<string>('전체');
+  const { posts } = useApp();
   const { openPostDetail, openWrite } = useModal();
   const tabs = ['전체', '자유게시판', '취업/진로', '스터디모집'];
 
-  const filtered = activeTab === '전체' ? communityPosts : communityPosts.filter(p => p.category === activeTab);
+  const filtered = activeTab === '전체' ? posts : posts.filter(p => p.category === activeTab);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
@@ -66,7 +68,7 @@ export default function CommunityPage() {
           return (
             <article
               key={post.id}
-              onClick={openPostDetail}
+              onClick={() => openPostDetail(post)}
               className="bg-white rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 border border-transparent cursor-pointer flex flex-col overflow-hidden"
             >
               {post.hasImage && (
@@ -74,7 +76,7 @@ export default function CommunityPage() {
                   <span className="material-symbols-outlined text-[#737784] text-[60px]">image</span>
                 </div>
               )}
-              <div className={`p-6 flex flex-col justify-between flex-1 ${post.hasImage ? '' : ''}`}>
+              <div className="p-6 flex flex-col justify-between flex-1">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className={`${catStyle.bg} ${catStyle.text} text-xs px-2 py-1 rounded font-semibold`}>{post.category}</span>

@@ -2,6 +2,7 @@
 
 import { participants } from '@/data/mockData';
 import { useModal } from '@/components/Modals/ModalContext';
+import { useApp } from '@/contexts/AppContext';
 
 const statusConfig = {
   '정상': { label: '🟢정상', bg: 'bg-[#2A9D8F]', text: 'text-white', bar: 'bg-[#00327d]' },
@@ -11,6 +12,7 @@ const statusConfig = {
 
 export default function HomePage() {
   const { openPostDetail } = useModal();
+  const { attendanceRate } = useApp();
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
@@ -22,11 +24,11 @@ export default function HomePage() {
             <span className="material-symbols-outlined">analytics</span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>92%</span>
+            <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{attendanceRate}%</span>
             <span className="text-sm text-[#8cf5e4]">▲ 2.4%</span>
           </div>
           <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-            <div className="bg-white h-full" style={{ width: '92%' }} />
+            <div className="bg-white h-full transition-all duration-500" style={{ width: `${attendanceRate}%` }} />
           </div>
         </div>
 

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { notices } from '@/data/mockData';
+import { useApp } from '@/contexts/AppContext';
 import { useModal } from '@/components/Modals/ModalContext';
 
 export default function NoticesPage() {
   const [activeFilter, setActiveFilter] = useState('전체');
-  const { openPostDetail } = useModal();
+  const { notices } = useApp();
+  const { openNoticeDetail } = useModal();
   const filters = ['전체', '필독', '프로그램'];
 
   const filtered = activeFilter === '전체' ? notices : notices.filter(n => n.category === activeFilter);
@@ -74,7 +75,7 @@ export default function NoticesPage() {
         {filtered.map((n, idx) => (
           <div
             key={n.id}
-            onClick={openPostDetail}
+            onClick={() => openNoticeDetail(n)}
             className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
           >
             <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white ${n.isPinned ? 'bg-[#db313f]' : 'bg-[#edeeef]'}`}>

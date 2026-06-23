@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { AppProvider } from '@/contexts/AppContext';
 import { ModalProvider } from '@/components/Modals/ModalContext';
 import ForgotPasswordModal from '@/components/Modals/ForgotPasswordModal';
 import PostDetailSlideOver from '@/components/Modals/PostDetailSlideOver';
+import NoticeDetailSlideOver from '@/components/Modals/NoticeDetailSlideOver';
 import ProfileSlideOver from '@/components/Modals/ProfileSlideOver';
 import WritePostSlideOver from '@/components/Modals/WritePostSlideOver';
+import AssignmentSubmitSlideOver from '@/components/Modals/AssignmentSubmitSlideOver';
+import Toast from '@/components/UI/Toast';
 
 export const metadata: Metadata = {
   title: '경북청년인재스쿨',
@@ -28,13 +32,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-[#f8f9fa]">
-        <ModalProvider>
-          {children}
-          <ForgotPasswordModal />
-          <PostDetailSlideOver />
-          <ProfileSlideOver />
-          <WritePostSlideOver />
-        </ModalProvider>
+        <AppProvider>
+          <ModalProvider>
+            {children}
+            <ForgotPasswordModal />
+            <PostDetailSlideOver />
+            <NoticeDetailSlideOver />
+            <ProfileSlideOver />
+            <WritePostSlideOver />
+            <AssignmentSubmitSlideOver />
+            <Toast />
+          </ModalProvider>
+        </AppProvider>
       </body>
     </html>
   );
