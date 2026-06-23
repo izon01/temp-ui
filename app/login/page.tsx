@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
 
-export default function LoginPage() {
+// useSearchParams를 쓰는 내부 컴포넌트 → Suspense로 감싸야 빌드 통과
+function LoginForm() {
   const [showPwd, setShowPwd] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
@@ -45,117 +46,132 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-tr from-[#00327d] via-[#00327d] to-[#0047ab]" />
+    <div className="w-full max-w-[440px] flex flex-col items-center gap-10">
+      {/* Branding */}
+      <div className="text-center space-y-3">
+        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+          경북청년인재스쿨
+        </h1>
+        <p className="text-[#a5bdff] max-w-[280px] mx-auto leading-relaxed text-sm">
+          경상북도의 미래를 이끄는 청년 인재들의 성장을 지원합니다.
+        </p>
+      </div>
 
-      <div className="w-full max-w-[440px] flex flex-col items-center gap-10">
-        {/* Branding */}
-        <div className="text-center space-y-3">
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-            경북청년인재스쿨
-          </h1>
-          <p className="text-[#a5bdff] max-w-[280px] mx-auto leading-relaxed text-sm">
-            경상북도의 미래를 이끄는 청년 인재들의 성장을 지원합니다.
-          </p>
+      {/* Card */}
+      <div className="w-full bg-white rounded-xl shadow-2xl p-6 flex flex-col gap-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>로그인</h2>
+          <p className="text-sm text-[#434653] mt-1">인재스쿨 서비스를 위해 로그인해 주세요.</p>
         </div>
 
-        {/* Card */}
-        <div className="w-full bg-white rounded-xl shadow-2xl p-6 flex flex-col gap-6">
-          <div>
-            <h2 className="text-2xl font-semibold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>로그인</h2>
-            <p className="text-sm text-[#434653] mt-1">인재스쿨 서비스를 위해 로그인해 주세요.</p>
+        {/* 가입 완료 안내 */}
+        {justRegistered && (
+          <div className="bg-[#d1fae5] text-[#065f46] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            회원가입이 완료되었습니다! 만든 아이디로 로그인해 주세요.
           </div>
+        )}
 
-          {/* 가입 완료 안내 */}
-          {justRegistered && (
-            <div className="bg-[#d1fae5] text-[#065f46] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              회원가입이 완료되었습니다! 만든 아이디로 로그인해 주세요.
+        {/* 테스트 계정 안내 */}
+        <div className="bg-[#dae2ff] rounded-lg p-3 text-xs text-[#001946] space-y-0.5">
+          <p className="font-bold mb-1">테스트 계정</p>
+          <p>관리자: <span className="font-mono font-bold">admin</span> / admin1234</p>
+          <p>참여자: <span className="font-mono font-bold">kimjisoo</span> / pass1234</p>
+        </div>
+
+        <form className="flex flex-col gap-4" onSubmit={handleLogin}>
+          {/* Error */}
+          {error && (
+            <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              {error}
             </div>
           )}
 
-          {/* 테스트 계정 안내 */}
-          <div className="bg-[#dae2ff] rounded-lg p-3 text-xs text-[#001946] space-y-0.5">
-            <p className="font-bold mb-1">테스트 계정</p>
-            <p>관리자: <span className="font-mono font-bold">admin</span> / admin1234</p>
-            <p>참여자: <span className="font-mono font-bold">kimjisoo</span> / pass1234</p>
+          {/* 아이디 */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[#434653] flex items-center gap-1">
+              <span className="material-symbols-outlined text-[18px]">person</span>
+              아이디
+            </label>
+            <input
+              type="text"
+              value={loginId}
+              onChange={e => setLoginId(e.target.value)}
+              placeholder="아이디를 입력하세요"
+              autoComplete="username"
+              className="w-full h-14 px-4 bg-[#f8f9fa] border border-[#c3c6d5] rounded-lg text-[#191c1d] placeholder:text-[#737784] focus:outline-none focus:border-[#0047ab] focus:ring-2 focus:ring-[#0047ab]/20 transition-all"
+            />
           </div>
 
-          <form className="flex flex-col gap-4" onSubmit={handleLogin}>
-            {/* Error */}
-            {error && (
-              <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">error</span>
-                {error}
-              </div>
-            )}
-
-            {/* 아이디 */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-[#434653] flex items-center gap-1">
-                <span className="material-symbols-outlined text-[18px]">person</span>
-                아이디
-              </label>
+          {/* Password */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-[#434653] flex items-center gap-1">
+              <span className="material-symbols-outlined text-[18px]">lock</span>
+              비밀번호
+            </label>
+            <div className="relative">
               <input
-                type="text"
-                value={loginId}
-                onChange={e => setLoginId(e.target.value)}
-                placeholder="아이디를 입력하세요"
-                autoComplete="username"
+                type={showPwd ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="비밀번호를 입력하세요"
+                autoComplete="current-password"
                 className="w-full h-14 px-4 bg-[#f8f9fa] border border-[#c3c6d5] rounded-lg text-[#191c1d] placeholder:text-[#737784] focus:outline-none focus:border-[#0047ab] focus:ring-2 focus:ring-[#0047ab]/20 transition-all"
               />
-            </div>
-
-            {/* Password */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-[#434653] flex items-center gap-1">
-                <span className="material-symbols-outlined text-[18px]">lock</span>
-                비밀번호
-              </label>
-              <div className="relative">
-                <input
-                  type={showPwd ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="비밀번호를 입력하세요"
-                  autoComplete="current-password"
-                  className="w-full h-14 px-4 bg-[#f8f9fa] border border-[#c3c6d5] rounded-lg text-[#191c1d] placeholder:text-[#737784] focus:outline-none focus:border-[#0047ab] focus:ring-2 focus:ring-[#0047ab]/20 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737784] hover:text-[#00327d] transition-colors"
-                >
-                  <span className="material-symbols-outlined">{showPwd ? 'visibility_off' : 'visibility'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-[#c3c6d5] text-[#00327d] focus:ring-[#00327d]/20" />
-                <span className="text-sm text-[#434653]">로그인 상태 유지</span>
-              </label>
-
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-14 bg-[#0047ab] text-white font-bold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => setShowPwd(!showPwd)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737784] hover:text-[#00327d] transition-colors"
               >
-                {loading ? (
-                  <><span className="material-symbols-outlined animate-spin">progress_activity</span> 로그인 중...</>
-                ) : '로그인'}
+                <span className="material-symbols-outlined">{showPwd ? 'visibility_off' : 'visibility'}</span>
               </button>
             </div>
-          </form>
-
-          <div className="flex items-center justify-center divide-x divide-[#c3c6d5] py-2">
-            <Link href="/register" className="px-4 text-sm text-[#434653] hover:text-[#00327d] transition-colors">회원가입</Link>
-            <button onClick={openForgotPassword} className="px-4 text-sm text-[#434653] hover:text-[#00327d] transition-colors">비밀번호 찾기</button>
           </div>
+
+          <div className="flex flex-col gap-4 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="w-4 h-4 rounded border-[#c3c6d5] text-[#00327d] focus:ring-[#00327d]/20" />
+              <span className="text-sm text-[#434653]">로그인 상태 유지</span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-14 bg-[#0047ab] text-white font-bold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <><span className="material-symbols-outlined animate-spin">progress_activity</span> 로그인 중...</>
+              ) : '로그인'}
+            </button>
+          </div>
+        </form>
+
+        <div className="flex items-center justify-center divide-x divide-[#c3c6d5] py-2">
+          <Link href="/register" className="px-4 text-sm text-[#434653] hover:text-[#00327d] transition-colors">회원가입</Link>
+          <button onClick={openForgotPassword} className="px-4 text-sm text-[#434653] hover:text-[#00327d] transition-colors">비밀번호 찾기</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-tr from-[#00327d] via-[#00327d] to-[#0047ab]" />
+      <Suspense fallback={
+        <div className="w-full max-w-[440px] flex flex-col items-center gap-10">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>경북청년인재스쿨</h1>
+          </div>
+          <div className="w-full bg-white rounded-xl shadow-2xl p-6 h-96 flex items-center justify-center">
+            <span className="material-symbols-outlined animate-spin text-[#0047ab] text-[40px]">progress_activity</span>
+          </div>
+        </div>
+      }>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }
