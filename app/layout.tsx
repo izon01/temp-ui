@@ -9,6 +9,7 @@ import ProfileSlideOver from '@/components/Modals/ProfileSlideOver';
 import WritePostSlideOver from '@/components/Modals/WritePostSlideOver';
 import AssignmentSubmitSlideOver from '@/components/Modals/AssignmentSubmitSlideOver';
 import Toast from '@/components/UI/Toast';
+import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: '경북청년인재스쿨',
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-[#f8f9fa]">
+        <Providers>
         <AppProvider>
           <ModalProvider>
             {children}
@@ -44,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Toast />
           </ModalProvider>
         </AppProvider>
+        </Providers>
       </body>
     </html>
   );

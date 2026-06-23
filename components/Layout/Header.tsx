@@ -2,18 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { useModal } from '../Modals/ModalContext';
 
 const navLinks = [
-  { href: '/home', label: '홈' },
+  { href: '/home',      label: '홈' },
   { href: '/education', label: '교육관리' },
-  { href: '/notices', label: '공지사항' },
+  { href: '/notices',   label: '공지사항' },
   { href: '/community', label: '커뮤니티' },
 ];
 
 export default function Header() {
   const pathname = usePathname();
   const { openProfile } = useModal();
+  const { data: session } = useSession();
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/login' });
+  };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -38,12 +44,32 @@ export default function Header() {
             ))}
           </nav>
         </div>
+
         <div className="flex items-center gap-2">
+          {session?.user && (
+            <div className="hidden md:flex items-center gap-2 mr-2">
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                session.user.role === 'admin'
+                  ? 'bg-[#ffdad8] text-[#b7102a]'
+                  : 'bg-[#dae2ff] text-[#001946]'
+              }`}>
+                {session.user.role === 'admin' ? '관리자' : '참여자'}
+              </span>
+              <span className="text-sm font-semibold text-[#191c1d]">{session.user.name}</span>
+            </div>
+          )}
           <button
             onClick={openProfile}
             className="material-symbols-outlined text-[#434653] hover:bg-[#f3f4f5] p-2 rounded-full transition-colors active:scale-95"
           >
             account_circle
+          </button>
+          <button
+            onClick={handleSignOut}
+            title="로그아웃"
+            className="material-symbols-outlined text-[#737784] hover:bg-[#f3f4f5] hover:text-[#b7102a] p-2 rounded-full transition-colors active:scale-95"
+          >
+            logout
           </button>
         </div>
       </div>
