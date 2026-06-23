@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
+import { deleteNotice } from '@/actions/notices';
+import { useApp } from '@/contexts/AppContext';
 
 interface Notice {
   id: number; title: string; category: string;
@@ -20,11 +22,27 @@ const FILTERS = ['전체', '필독', '공지', '프로그램', '취업정보', '
 export default function NoticesClient({ initialNotices, searchQuery }: Props) {
   const [activeFilter, setActiveFilter] = useState('전체');
   const [inputValue, setInputValue] = useState(searchQuery);
+  const [isPending, startTransition] = useTransition();
   const { openNoticeDetail, openWriteNotice } = useModal();
   const { data: session } = useSession();
+  const { showToast } = useApp();
   const isAdmin = session?.user?.role === 'admin';
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDeleteNotice = (e: React.MouseEvent, notice: Notice) => {
+    e.stopPropagation();
+    if (!confirm(`"${notice.title}" 공지를 삭제하시겠습니까?`)) return;
+    startTransition(async () => {
+      const result = await deleteNotice(notice.id);
+      if (result.success) {
+        showToast('공지가 삭제되었습니다.');
+        router.refresh();
+      } else {
+        showToast(result.error ?? '삭제 중 오류가 발생했습니다.');
+      }
+    });
+  };
 
   const handleSearch = () => {
     const q = inputRef.current?.value.trim() ?? '';
@@ -164,7 +182,18 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
                   </span>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-[#737784] hidden md:block">chevron_right</span>
+              <div className="flex items-center gap-2 ml-auto md:ml-0">
+                {isAdmin && (
+                  <button
+                    onClick={(e) => handleDeleteNotice(e, n)}
+                    disabled={isPending}
+                    className="bg-[#E63946] text-white text-xs px-3 py-1 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    삭제
+                  </button>
+                )}
+                <span className="material-symbols-outlined text-[#737784] hidden md:block">chevron_right</span>
+              </div>
             </div>
           ))
         )}

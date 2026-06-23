@@ -1,7 +1,6 @@
 'use client';
 
 import { useModal } from '@/components/Modals/ModalContext';
-import { useApp } from '@/contexts/AppContext';
 
 const statusConfig = {
   '정상': { label: '🟢정상', bg: 'bg-[#2A9D8F]', text: 'text-white', bar: 'bg-[#00327d]' },
@@ -17,28 +16,28 @@ interface Participant {
 interface Props {
   participants: Participant[];
   participantCount: number;
+  initialAttendanceRate: number;
 }
 
-export default function HomeClient({ participants, participantCount }: Props) {
-  const { openPostDetail } = useModal();
-  const { attendanceRate } = useApp();
+export default function HomeClient({ participants, participantCount, initialAttendanceRate }: Props) {
+  const { openParticipantProfile } = useModal();
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
       {/* Summary Dashboard */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 출석률 */}
+        {/* 출석률 (DB 실데이터) */}
         <div className="bg-[#0047ab] text-white rounded-xl p-6 shadow-sm flex flex-col justify-between h-40">
           <div className="flex justify-between items-start">
             <span className="text-sm font-semibold opacity-80">전체 출석률</span>
             <span className="material-symbols-outlined">analytics</span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{attendanceRate}%</span>
-            <span className="text-sm text-[#8cf5e4]">▲ 2.4%</span>
+            <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{initialAttendanceRate}%</span>
+            <span className="text-sm text-[#8cf5e4]">실시간 DB</span>
           </div>
           <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-            <div className="bg-white h-full transition-all duration-500" style={{ width: `${attendanceRate}%` }} />
+            <div className="bg-white h-full transition-all duration-500" style={{ width: `${initialAttendanceRate}%` }} />
           </div>
         </div>
 
@@ -100,7 +99,7 @@ export default function HomeClient({ participants, participantCount }: Props) {
             return (
               <div
                 key={p.id}
-                onClick={() => openPostDetail({} as any)}
+                onClick={() => openParticipantProfile(p)}
                 className="bg-white p-4 rounded-xl shadow-sm border border-transparent hover:border-[#00327d]/20 transition-all flex flex-col md:flex-row md:items-center gap-4 cursor-pointer active:scale-[0.99]"
               >
                 <div className="flex items-center gap-4 flex-1">

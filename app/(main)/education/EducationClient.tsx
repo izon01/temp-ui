@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useModal } from '@/components/Modals/ModalContext';
 import { useApp } from '@/contexts/AppContext';
+import { deleteAssignment } from '@/actions/assignments';
+import { useRouter } from 'next/navigation';
 
 interface Assignment {
   id: number; week: number; title: string; description: string;
@@ -17,10 +19,25 @@ interface Props {
 
 export default function EducationClient({ initialAssignments, userName, isAdmin }: Props) {
   const { openSubmitAssignment, openWriteAssignment } = useModal();
-  const { attendanceChecked, checkAttendance } = useApp();
+  const { attendanceChecked, checkAttendance, showToast } = useApp();
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   // 옵티미스틱: 제출 완료 처리 (revalidatePath 전 즉시 UI 반영)
   const [localSubmitted, setLocalSubmitted] = useState<Set<number>>(new Set());
+
+  const handleDeleteAssignment = (id: number, title: string) => {
+    if (!confirm(`"${title}" 과제를 삭제하시겠습니까?`)) return;
+    startTransition(async () => {
+      const result = await deleteAssignment(id);
+      if (result.success) {
+        showToast('과제가 삭제되었습니다.');
+        router.refresh();
+      } else {
+        showToast(result.error ?? '삭제 중 오류가 발생했습니다.');
+      }
+    });
+  };
 
   const assignments = initialAssignments.map(a => ({
     ...a,
@@ -40,7 +57,7 @@ export default function EducationClient({ initialAssignments, userName, isAdmin 
     openSubmitAssignment({
       id: a.id, week: a.week, title: a.title, description: a.description,
       deadline: a.deadline, daysLeft: a.daysLeft, submitted: a.submitted,
-    } as any);
+    });
   };
 
   return (
@@ -175,7 +192,7 @@ export default function EducationClient({ initialAssignments, userName, isAdmin 
                     <p className="text-xs text-[#737784]">마감일: {a.deadline}</p>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
                     {a.submitted ? (
                       <>
                         <span className="bg-[#8cf5e4] text-[#00201c] px-4 py-2 rounded-full text-sm font-semibold">제출완료</span>
@@ -191,6 +208,15 @@ export default function EducationClient({ initialAssignments, userName, isAdmin 
                           과제 제출하기
                         </button>
                       </>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteAssignment(a.id, a.title)}
+                        disabled={isPending}
+                        className="bg-[#E63946] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        삭제
+                      </button>
                     )}
                   </div>
                 </div>

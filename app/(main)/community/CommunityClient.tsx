@@ -1,8 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
+import { deleteCommunityPost } from '@/actions/community';
+import { useApp } from '@/contexts/AppContext';
 
 interface Post {
   id: number; category: string; title: string; content: string;
@@ -34,7 +37,11 @@ function timeAgo(date: string) {
 export default function CommunityClient({ initialPosts, searchQuery }: Props) {
   const [activeTab, setActiveTab] = useState('전체');
   const [inputValue, setInputValue] = useState(searchQuery);
-  const { openWrite } = useModal();
+  const [isPending, startTransition] = useTransition();
+  const { openWrite, openPostDetail } = useModal();
+  const { showToast } = useApp();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'admin';
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +52,20 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') handleSearch();
+  };
+
+  const handleDeletePost = (e: React.MouseEvent, post: Post) => {
+    e.stopPropagation();
+    if (!confirm(`"${post.title}" 게시글을 삭제하시겠습니까?`)) return;
+    startTransition(async () => {
+      const result = await deleteCommunityPost(post.id);
+      if (result.success) {
+        showToast('게시글이 삭제되었습니다.');
+        router.refresh();
+      } else {
+        showToast(result.error ?? '삭제 중 오류가 발생했습니다.');
+      }
+    });
   };
 
   const filtered = activeTab === '전체'
@@ -128,8 +149,28 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
             return (
               <article
                 key={post.id}
-                className="bg-white rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 border border-transparent cursor-pointer flex flex-col overflow-hidden"
+                onClick={() => openPostDetail({
+                  id: post.id,
+                  category: post.category,
+                  title: post.title,
+                  content: post.content,
+                  author: post.authorName,
+                  timeAgo: timeAgo(post.date),
+                  comments: post.comments,
+                  hasImage: post.hasImage,
+                })}
+                className="bg-white rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 border border-transparent cursor-pointer flex flex-col overflow-hidden relative"
               >
+                {/* 관리자 삭제 버튼 */}
+                {isAdmin && (
+                  <button
+                    onClick={(e) => handleDeletePost(e, post)}
+                    disabled={isPending}
+                    className="absolute top-3 right-3 z-10 bg-[#E63946] text-white text-xs px-2 py-1 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    삭제
+                  </button>
+                )}
                 {post.hasImage && (
                   <div className="h-40 bg-[#e1e3e4] flex items-center justify-center overflow-hidden">
                     <span className="material-symbols-outlined text-[#737784] text-[60px]">image</span>

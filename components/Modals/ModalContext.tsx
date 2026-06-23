@@ -1,23 +1,48 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { Assignment, CommunityPost, Notice } from '@/data/mockData';
 
-type ModalType = 'forgotPassword' | 'postDetail' | 'noticeDetail' | 'profile' | 'write' | 'writeNotice' | 'submitAssignment' | 'writeAssignment' | null;
+export interface SelectedPost {
+  id: number; category: string; title: string; content: string;
+  author: string; timeAgo: string; comments: number; hasImage: boolean;
+}
+
+export interface SelectedAssignment {
+  id: number; week: number; title: string; description: string;
+  deadline: string; daysLeft: number | null; submitted: boolean;
+}
+
+export interface SelectedParticipant {
+  id: number; name: string; team: string; track: string;
+  attendance: number; status: string; lastAccess: string;
+}
+
+export interface NoticeDetail {
+  id: number; title: string; date: string; views: number;
+  isPinned: boolean; category: string; icon: string;
+  content?: string; imageUrl?: string;
+}
+
+type ModalType =
+  | 'forgotPassword' | 'postDetail' | 'noticeDetail' | 'profile'
+  | 'write' | 'writeNotice' | 'submitAssignment' | 'writeAssignment'
+  | 'participantProfile' | null;
 
 interface ModalContextValue {
   openModal: ModalType;
-  selectedPost: CommunityPost | null;
-  selectedNotice: Notice | null;
-  selectedAssignment: Assignment | null;
+  selectedPost: SelectedPost | null;
+  selectedNotice: NoticeDetail | null;
+  selectedAssignment: SelectedAssignment | null;
+  selectedParticipant: SelectedParticipant | null;
   openForgotPassword: () => void;
-  openPostDetail: (post: CommunityPost) => void;
-  openNoticeDetail: (notice: Notice) => void;
+  openPostDetail: (post: SelectedPost) => void;
+  openNoticeDetail: (notice: NoticeDetail) => void;
   openProfile: () => void;
   openWrite: () => void;
   openWriteNotice: () => void;
-  openSubmitAssignment: (assignment: Assignment) => void;
+  openSubmitAssignment: (assignment: SelectedAssignment) => void;
   openWriteAssignment: () => void;
+  openParticipantProfile: (participant: SelectedParticipant) => void;
   closeModal: () => void;
 }
 
@@ -25,23 +50,25 @@ const ModalContext = createContext<ModalContextValue | null>(null);
 
 export function ModalProvider({ children }: { children: ReactNode }) {
   const [openModal, setOpenModal] = useState<ModalType>(null);
-  const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
-  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [selectedPost, setSelectedPost] = useState<SelectedPost | null>(null);
+  const [selectedNotice, setSelectedNotice] = useState<NoticeDetail | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<SelectedAssignment | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<SelectedParticipant | null>(null);
 
   const closeModal = () => setOpenModal(null);
 
   return (
     <ModalContext.Provider value={{
-      openModal, selectedPost, selectedNotice, selectedAssignment,
+      openModal, selectedPost, selectedNotice, selectedAssignment, selectedParticipant,
       openForgotPassword: () => setOpenModal('forgotPassword'),
       openPostDetail: (post) => { setSelectedPost(post); setOpenModal('postDetail'); },
       openNoticeDetail: (notice) => { setSelectedNotice(notice); setOpenModal('noticeDetail'); },
       openProfile: () => setOpenModal('profile'),
       openWrite: () => setOpenModal('write'),
       openWriteNotice: () => setOpenModal('writeNotice'),
-      openSubmitAssignment: (assignment) => { setSelectedAssignment(assignment); setOpenModal('submitAssignment'); },
+      openSubmitAssignment: (a) => { setSelectedAssignment(a); setOpenModal('submitAssignment'); },
       openWriteAssignment: () => setOpenModal('writeAssignment'),
+      openParticipantProfile: (p) => { setSelectedParticipant(p); setOpenModal('participantProfile'); },
       closeModal,
     }}>
       {children}

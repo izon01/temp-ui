@@ -11,6 +11,7 @@ export default function AssignmentSubmitSlideOver() {
   const { submitAssignment, showToast } = useApp();
   const [link, setLink] = useState('');
   const [fileName, setFileName] = useState('');
+  const [content, setContent] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -19,10 +20,12 @@ export default function AssignmentSubmitSlideOver() {
     if (e.target.files?.[0]) setFileName(e.target.files[0].name);
   };
 
-  const reset = () => { setLink(''); setFileName(''); setError(''); };
+  const reset = () => { setLink(''); setFileName(''); setContent(''); setError(''); };
+
+  const hasInput = !!(link || fileName || content.trim());
 
   const handleSubmit = () => {
-    if (!selectedAssignment || (!link && !fileName)) return;
+    if (!selectedAssignment || !hasInput) return;
     setError('');
 
     startTransition(async () => {
@@ -30,10 +33,10 @@ export default function AssignmentSubmitSlideOver() {
       formData.append('assignmentId', String(selectedAssignment.id));
       formData.append('link', link);
       formData.append('fileName', fileName);
+      formData.append('content', content);
 
       const result = await submitAssignmentAction(formData);
       if (result.success) {
-        // 옵티미스틱 업데이트: 즉시 UI에서 제출완료로 변경
         submitAssignment(selectedAssignment.id, { link, fileName });
         showToast('제출되었습니다 ✓');
         reset();
@@ -74,6 +77,24 @@ export default function AssignmentSubmitSlideOver() {
               </h3>
               <p className="text-sm text-[#434653]">{selectedAssignment.description}</p>
               <p className="text-xs text-[#737784]">마감일: {selectedAssignment.deadline}</p>
+            </div>
+
+            {/* 본문 입력 */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-[#434653]">본문 작성</label>
+              <textarea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                maxLength={2000}
+                rows={6}
+                placeholder="과제 내용을 직접 작성하세요..."
+                className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all resize-none text-sm"
+              />
+              <p className="text-xs text-[#737784] text-right">{content.length}/2000</p>
+            </div>
+
+            <div className="flex items-center gap-3 text-[#737784] text-sm">
+              <div className="flex-1 h-px bg-[#e1e3e4]" /><span>또는 첨부</span><div className="flex-1 h-px bg-[#e1e3e4]" />
             </div>
 
             {/* 파일 업로드 */}
@@ -120,7 +141,7 @@ export default function AssignmentSubmitSlideOver() {
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-[#e1e3e4]">
             <button
               onClick={handleSubmit}
-              disabled={isPending || (!link && !fileName)}
+              disabled={isPending || !hasInput}
               className="w-full bg-[#0047ab] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50"
             >
               {isPending ? (
