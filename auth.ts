@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
 import type { DefaultSession } from 'next-auth';
 
 declare module 'next-auth' {
@@ -14,14 +15,6 @@ declare module 'next-auth' {
   }
 }
 
-// 임시 유저 데이터 — Vercel Postgres 연결 시 아래 TODO 부분을 DB 쿼리로 교체
-const mockUsers = [
-  { id: '0', email: 'admin@gyeongbuk.kr',      password: 'admin1234', name: '관리자 김청년', role: 'admin' as const },
-  { id: '1', email: 'kimjisoo@gyeongbuk.kr',   password: 'pass1234',  name: '김지수',      role: 'participant' as const },
-  { id: '2', email: 'leeminho@gyeongbuk.kr',   password: 'pass1234',  name: '이민호',      role: 'participant' as const },
-  { id: '3', email: 'parkseoyeon@gyeongbuk.kr',password: 'pass1234',  name: '박서연',      role: 'participant' as const },
-];
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
@@ -34,23 +27,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = String(credentials?.password ?? '').trim();
         if (!email || !password) return null;
 
-        // TODO: Vercel Postgres 연결 후 아래 코드로 교체
-        // import { sql } from '@vercel/postgres';
-        // const { rows } = await sql`
-        //   SELECT id, email, name, role, password_hash
-        //   FROM participants WHERE email = ${email}
-        // `;
-        // const user = rows[0];
-        // if (!user) return null;
-        // const valid = await bcrypt.compare(password, user.password_hash);
-        // if (!valid) return null;
-        // return { id: String(user.id), email: user.email, name: user.name, role: user.role };
+        try {
+          const { sql } = await import('@/lib/db');
+          const rows = await sql`
+            SELECT id, email, name, role, password_hash
+            FROM participants
+            WHERE email = ${email}
+            LIMIT 1
+          `;
+          const user = rows[0];
+          if (!user) return null;
 
-        const user = mockUsers.find(
-          u => u.email === email && u.password === password
-        );
-        if (!user) return null;
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+          const valid = await bcrypt.compare(password, user.password_hash as string);
+          if (!valid) return null;
+
+          return {
+            id:    String(user.id),
+            email: user.email as string,
+            name:  user.name as string,
+            role:  user.role as 'admin' | 'participant',
+          };
+        } catch (err) {
+          console.error('[auth] DB 조회 오류:', err);
+          return null;
+        }
       },
     }),
   ],

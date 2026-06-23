@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { Assignment, CommunityPost, Notice } from '@/data/mockData';
 
-type ModalType = 'forgotPassword' | 'postDetail' | 'noticeDetail' | 'profile' | 'write' | 'submitAssignment' | null;
+type ModalType = 'forgotPassword' | 'postDetail' | 'noticeDetail' | 'profile' | 'write' | 'writeNotice' | 'submitAssignment' | null;
 
 interface ModalContextValue {
   openModal: ModalType;
@@ -15,6 +15,7 @@ interface ModalContextValue {
   openNoticeDetail: (notice: Notice) => void;
   openProfile: () => void;
   openWrite: () => void;
+  openWriteNotice: () => void;
   openSubmitAssignment: (assignment: Assignment) => void;
   closeModal: () => void;
 }
@@ -37,6 +38,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       openNoticeDetail: (notice) => { setSelectedNotice(notice); setOpenModal('noticeDetail'); },
       openProfile: () => setOpenModal('profile'),
       openWrite: () => setOpenModal('write'),
+      openWriteNotice: () => setOpenModal('writeNotice'),
       openSubmitAssignment: (assignment) => { setSelectedAssignment(assignment); setOpenModal('submitAssignment'); },
       closeModal,
     }}>

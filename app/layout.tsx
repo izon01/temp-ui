@@ -8,6 +8,7 @@ import NoticeDetailSlideOver from '@/components/Modals/NoticeDetailSlideOver';
 import ProfileSlideOver from '@/components/Modals/ProfileSlideOver';
 import WritePostSlideOver from '@/components/Modals/WritePostSlideOver';
 import AssignmentSubmitSlideOver from '@/components/Modals/AssignmentSubmitSlideOver';
+import NoticeWriteSlideOver from '@/components/Modals/NoticeWriteSlideOver';
 import Toast from '@/components/UI/Toast';
 import Providers from '@/components/Providers';
 
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ProfileSlideOver />
             <WritePostSlideOver />
             <AssignmentSubmitSlideOver />
+            <NoticeWriteSlideOver />
             <Toast />
           </ModalProvider>
         </AppProvider>
