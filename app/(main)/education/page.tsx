@@ -1,11 +1,14 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useApp } from '@/contexts/AppContext';
 import { useModal } from '@/components/Modals/ModalContext';
 
 export default function EducationPage() {
   const { assignments, attendanceChecked, checkAttendance } = useApp();
   const { openSubmitAssignment } = useModal();
+  const { data: session } = useSession();
+  const userName = session?.user?.name ?? '학생';
 
   const today = new Date();
   const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -18,7 +21,7 @@ export default function EducationPage() {
       {/* Welcome */}
       <section className="space-y-1">
         <p className="text-sm font-semibold text-[#00327d] uppercase tracking-wider">Education Management</p>
-        <h2 className="text-2xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>김지수 학생, 안녕하세요!</h2>
+        <h2 className="text-2xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{userName} 님, 안녕하세요!</h2>
         <p className="text-[#434653]">오늘도 꿈을 향한 한 걸음을 응원합니다.</p>
       </section>
 

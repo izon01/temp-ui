@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
@@ -11,6 +12,8 @@ const categories: CommunityPost['category'][] = ['자유게시판', '취업/진�
 export default function WritePostSlideOver() {
   const { openModal, closeModal } = useModal();
   const { addPost } = useApp();
+  const { data: session } = useSession();
+  const authorName = session?.user?.name ?? '익명';
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<CommunityPost['category']>('자유게시판');
@@ -20,7 +23,7 @@ export default function WritePostSlideOver() {
     if (!title.trim() || !content.trim()) return;
     setSubmitting(true);
     setTimeout(() => {
-      addPost({ title, content, category, author: '김지수', hasImage: false });
+      addPost({ title, content, category, author: authorName, hasImage: false });
       setSubmitting(false);
       setTitle('');
       setContent('');
