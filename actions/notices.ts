@@ -25,6 +25,7 @@ export async function createNotice(formData: FormData) {
   if (content.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
 
   try {
+    await ensureNoticesTable();
     await sql`
       INSERT INTO notices (title, content, category, is_pinned, icon, image_url, author_id)
       VALUES (${title}, ${content}, ${category}, ${isPinned}, ${icon}, ${imageUrl}, ${session.user.id})
@@ -50,9 +51,27 @@ export async function deleteNotice(id: number) {
   }
 }
 
+async function ensureNoticesTable() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS notices (
+      id         SERIAL PRIMARY KEY,
+      title      TEXT NOT NULL,
+      content    TEXT,
+      category   TEXT NOT NULL DEFAULT '공지',
+      is_pinned  BOOLEAN NOT NULL DEFAULT false,
+      icon       TEXT NOT NULL DEFAULT 'campaign',
+      views      INTEGER NOT NULL DEFAULT 0,
+      image_url  TEXT,
+      author_id  TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+}
+
 export async function getNotices(q?: string) {
   const query = q?.trim() ?? '';
   try {
+    await ensureNoticesTable();
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
