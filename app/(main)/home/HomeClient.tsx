@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useModal } from '@/components/Modals/ModalContext';
 
 const statusConfig = {
@@ -68,6 +69,33 @@ export default function HomeClient({ participants, participantCount, initialAtte
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
+
+      {/* ── Hero Banner ── */}
+      <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff]">
+        <div className="flex flex-col justify-center gap-3">
+          <p className="text-xs font-bold tracking-widest text-[#0047ab] uppercase">경북청년인재스쿨</p>
+          <h1
+            className="text-2xl md:text-3xl font-black text-[#191c1d] leading-snug"
+            style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}
+          >
+            꿈꾸는 미래를 향해,<br />한 걸음 더
+          </h1>
+          <p className="text-[#434653] text-sm md:text-base">
+            청년인재스쿨이 여러분의 성장을 응원합니다.
+          </p>
+        </div>
+        <div className="flex-shrink-0 flex justify-center md:justify-end">
+          <Image
+            src="/img1.png"
+            alt="경북청년인재스쿨 히어로 이미지"
+            width={180}
+            height={180}
+            className="object-contain drop-shadow-md"
+            priority
+          />
+        </div>
+      </section>
+
       {/* Summary Dashboard */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* 출석률 */}
