@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { useModal } from '@/components/Modals/ModalContext';
 
 const statusConfig = {
@@ -85,13 +84,12 @@ export default function HomeClient({ participants, participantCount, initialAtte
           </p>
         </div>
         <div className="flex-shrink-0 flex justify-center md:justify-end">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/img1.png"
             alt="경북청년인재스쿨 히어로 이미지"
-            width={180}
-            height={180}
+            style={{ width: '180px', height: 'auto' }}
             className="object-contain drop-shadow-md"
-            priority
           />
         </div>
       </section>
