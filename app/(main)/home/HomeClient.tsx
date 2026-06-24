@@ -129,7 +129,7 @@ export default function HomeClient({ participants, participantCount, initialAtte
       <section className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-            참여자 모니터링
+            경북청년인재스쿨 9기
             {filterTeam !== '전체' && (
               <span className="ml-2 text-sm font-normal text-[#0047ab]">({filterTeam})</span>
             )}

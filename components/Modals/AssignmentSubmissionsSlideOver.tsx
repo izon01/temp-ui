@@ -98,24 +98,56 @@ export default function AssignmentSubmissionsSlideOver() {
                     )}
                     {s.fileName && (
                       s.fileData ? (
-                        <a href={s.fileData} download={s.fileName}
-                          className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2 hover:bg-[#b8c5f2] transition-colors">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // base64 data URL → Blob → 실제 다운로드
+                            try {
+                              const [meta, b64] = s.fileData!.split(',');
+                              const mime = meta.match(/:(.*?);/)?.[1] ?? 'application/octet-stream';
+                              const bytes = atob(b64);
+                              const arr = new Uint8Array(bytes.length);
+                              for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+                              const blob = new Blob([arr], { type: mime });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = s.fileName!;
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              URL.revokeObjectURL(url);
+                            } catch {
+                              // 변환 실패 시 data URL 직접 열기
+                              window.open(s.fileData!, '_blank');
+                            }
+                          }}
+                          className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2 hover:bg-[#b8c5f2] transition-colors w-full text-left"
+                        >
                           <span className="material-symbols-outlined text-[#00327d] text-[18px]">download</span>
                           <span className="text-sm text-[#00327d] font-semibold truncate">{s.fileName}</span>
                           <span className="text-xs text-[#434653] ml-auto flex-shrink-0">다운로드</span>
-                        </a>
+                        </button>
                       ) : (
-                        <div className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2">
-                          <span className="material-symbols-outlined text-[#00327d] text-[18px]">attach_file</span>
-                          <span className="text-sm text-[#191c1d] font-semibold truncate">{s.fileName}</span>
+                        <div className="flex items-center gap-2 bg-[#e7e8e9] rounded-lg px-3 py-2">
+                          <span className="material-symbols-outlined text-[#737784] text-[18px]">attach_file</span>
+                          <span className="text-sm text-[#434653] font-semibold truncate">{s.fileName}</span>
+                          <span className="text-xs text-[#737784] ml-auto flex-shrink-0">파일 데이터 없음</span>
                         </div>
                       )
                     )}
                     {s.link && (
                       <div className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2">
                         <span className="material-symbols-outlined text-[#00327d] text-[18px]">link</span>
-                        <a href={s.link} target="_blank" rel="noreferrer"
-                          className="text-sm text-[#00327d] underline truncate font-semibold">{s.link}</a>
+                        <a
+                          href={s.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-sm text-[#00327d] underline truncate font-semibold"
+                        >
+                          {s.link}
+                        </a>
                       </div>
                     )}
                     {!s.content && !s.fileName && !s.link && (
