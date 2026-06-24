@@ -17,9 +17,10 @@ interface Props {
   participants: Participant[];
   participantCount: number;
   initialAttendanceRate: number;
+  submissionRate: number;
 }
 
-export default function HomeClient({ participants, participantCount, initialAttendanceRate }: Props) {
+export default function HomeClient({ participants, participantCount, initialAttendanceRate, submissionRate }: Props) {
   const { openParticipantProfile } = useModal();
 
   return (
@@ -48,10 +49,12 @@ export default function HomeClient({ participants, participantCount, initialAtte
             <span className="material-symbols-outlined text-[#b7102a]">assignment_turned_in</span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>88.5%</span>
-            <span className="text-sm text-[#ba1a1a]">▼ 0.8%</span>
+            <span className="text-4xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{submissionRate}%</span>
+            <span className="text-sm text-[#434653]">실시간 DB</span>
           </div>
-          <p className="text-sm text-[#434653]">이번 주 미제출: 4명</p>
+          <div className="w-full bg-[#edeeef] h-2 rounded-full overflow-hidden">
+            <div className="bg-[#b7102a] h-full transition-all duration-500" style={{ width: `${submissionRate}%` }} />
+          </div>
         </div>
 
         {/* 현재 인원 (DB 연동) */}

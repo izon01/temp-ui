@@ -216,6 +216,55 @@ export async function getAssignmentSubmissionRate(): Promise<number> {
   }
 }
 
+/** 관리자용: 전체 참여자 모니터링 통계 */
+export async function getAdminMonitoringStats() {
+  try {
+    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS attendance_records (
+        id SERIAL PRIMARY KEY, participant_id INTEGER NOT NULL,
+        attended_date DATE NOT NULL, UNIQUE(participant_id, attended_date)
+      )
+    `;
+
+    const [attendRows, catRows, countRows] = await Promise.all([
+      sql`
+        SELECT
+          ROUND(AVG(attendance)) AS avg_attendance,
+          (SELECT COUNT(DISTINCT participant_id) FROM attendance_records
+           WHERE attended_date = CURRENT_DATE)::int AS today_count
+        FROM participants WHERE role = 'participant'
+      `,
+      sql`
+        SELECT
+          COALESCE(a.category, '과제') AS category,
+          COUNT(DISTINCT a.id)::int    AS total_assignments,
+          COUNT(DISTINCT s.id)::int    AS total_submissions
+        FROM assignments a
+        LEFT JOIN assignment_submissions s ON s.assignment_id = a.id
+        GROUP BY COALESCE(a.category, '과제')
+        ORDER BY category
+      `,
+      sql`SELECT COUNT(*)::int AS total FROM participants WHERE role='participant'`,
+    ]);
+
+    const totalParticipants = Number(countRows[0]?.total ?? 0);
+    const avgAttendance     = Number(attendRows[0]?.avg_attendance ?? 0);
+    const todayCount        = Number(attendRows[0]?.today_count ?? 0);
+
+    const categories = (catRows as Array<{ category: string; total_assignments: number; total_submissions: number }>).map(r => {
+      const denom = r.total_assignments * (totalParticipants || 1);
+      const rate  = denom > 0 ? Math.min(100, Math.round((r.total_submissions / denom) * 100)) : 0;
+      return { category: r.category, total: r.total_assignments, submitted: r.total_submissions, rate };
+    });
+
+    return { avgAttendance, todayCount, totalParticipants, categories };
+  } catch (error) {
+    console.error('[getAdminMonitoringStats]', error);
+    return { avgAttendance: 0, todayCount: 0, totalParticipants: 0, categories: [] };
+  }
+}
+
 export async function submitAssignmentAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return { success: false, error: '로그인이 필요합니다.' };

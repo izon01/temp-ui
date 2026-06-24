@@ -62,6 +62,27 @@ export async function createCommunityPost(formData: FormData) {
   }
 }
 
+export async function updateCommunityPost(id: number, formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
+
+  const category = String(formData.get('category') ?? '자유게시판').trim();
+  const title    = String(formData.get('title')    ?? '').trim();
+  const content  = String(formData.get('content')  ?? '').trim();
+
+  if (!title || !content) return { success: false, error: '제목과 내용을 입력해주세요.' };
+  if (content.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
+
+  try {
+    await sql`UPDATE community_posts SET category=${category}, title=${title}, content=${content} WHERE id=${id}`;
+    revalidatePath('/community');
+    return { success: true };
+  } catch (error) {
+    console.error('[updateCommunityPost]', error);
+    return { success: false, error: '수정 중 오류가 발생했습니다.' };
+  }
+}
+
 export async function deleteCommunityPost(id: number) {
   const session = await auth();
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };

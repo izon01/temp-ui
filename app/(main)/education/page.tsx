@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
-import { getAssignments, getParticipantActivityStats } from '@/actions/assignments';
+import { getAssignments, getParticipantActivityStats, getAdminMonitoringStats } from '@/actions/assignments';
+import { getTodayAttendance } from '@/actions/attendance';
 import EducationClient from './EducationClient';
 
 export default async function EducationPage() {
@@ -8,9 +9,11 @@ export default async function EducationPage() {
   const userName = session?.user?.name ?? '학생';
   const isAdmin  = session?.user?.role === 'admin';
 
-  const [assignments, stats] = await Promise.all([
+  const [assignments, stats, attendanceChecked, adminStats] = await Promise.all([
     getAssignments(userId),
     getParticipantActivityStats(userId),
+    isAdmin ? Promise.resolve(false) : getTodayAttendance(),
+    isAdmin ? getAdminMonitoringStats() : Promise.resolve(null),
   ]);
 
   return (
@@ -19,6 +22,8 @@ export default async function EducationPage() {
       userName={userName}
       isAdmin={isAdmin}
       stats={stats}
+      initialAttendanceChecked={attendanceChecked}
+      adminStats={adminStats}
     />
   );
 }

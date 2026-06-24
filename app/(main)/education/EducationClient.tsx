@@ -21,11 +21,20 @@ interface ActivityStats {
   totalAll: number; submittedAll: number;
 }
 
+interface AdminStats {
+  avgAttendance: number;
+  todayCount: number;
+  totalParticipants: number;
+  categories: Array<{ category: string; total: number; submitted: number; rate: number }>;
+}
+
 interface Props {
   initialAssignments: Assignment[];
   userName: string;
   isAdmin: boolean;
   stats: ActivityStats;
+  initialAttendanceChecked: boolean;
+  adminStats: AdminStats | null;
 }
 
 const CAT_CONFIG: Record<string, { label: string; icon: string; chip: string }> = {
@@ -34,24 +43,31 @@ const CAT_CONFIG: Record<string, { label: string; icon: string; chip: string }> 
   '멘토링': { label: '멘토링', icon: 'supervisor_account', chip: 'bg-[#d0f5e8] text-[#003822]' },
 };
 
+const CAT_BAR_COLOR: Record<string, string> = {
+  '캠프': 'bg-[#0047ab]', '과제': 'bg-[#b7102a]', '멘토링': 'bg-[#003e37]',
+};
+
 const LEVEL_COLORS = [
-  '', // 0 unused
-  'from-[#6b7280] to-[#9ca3af]', // LV1
-  'from-[#3b82f6] to-[#60a5fa]', // LV2
-  'from-[#10b981] to-[#34d399]', // LV3
-  'from-[#8b5cf6] to-[#a78bfa]', // LV4
-  'from-[#f59e0b] to-[#fbbf24]', // LV5
-  'from-[#ef4444] to-[#f87171]', // LV6
-  'from-[#ec4899] to-[#f472b6]', // LV7
-  'from-[#06b6d4] to-[#22d3ee]', // LV8
-  'from-[#f97316] to-[#fb923c]', // LV9
-  'from-[#eab308] to-[#fde047]', // LV10
+  '',
+  'from-[#6b7280] to-[#9ca3af]',
+  'from-[#3b82f6] to-[#60a5fa]',
+  'from-[#10b981] to-[#34d399]',
+  'from-[#8b5cf6] to-[#a78bfa]',
+  'from-[#f59e0b] to-[#fbbf24]',
+  'from-[#ef4444] to-[#f87171]',
+  'from-[#ec4899] to-[#f472b6]',
+  'from-[#06b6d4] to-[#22d3ee]',
+  'from-[#f97316] to-[#fb923c]',
+  'from-[#eab308] to-[#fde047]',
 ];
 
-export default function EducationClient({ initialAssignments, userName, isAdmin, stats }: Props) {
+export default function EducationClient({
+  initialAssignments, userName, isAdmin, stats,
+  initialAttendanceChecked, adminStats,
+}: Props) {
   const { openSubmitAssignment, openWriteAssignment, openEditAssignment, openAssignmentSubmissions } = useModal();
   const { showToast } = useApp();
-  const [attendanceChecked, setAttendanceChecked] = useState(false);
+  const [attendanceChecked, setAttendanceChecked] = useState(initialAttendanceChecked);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -124,36 +140,36 @@ export default function EducationClient({ initialAssignments, userName, isAdmin,
         </div>
 
         <div className="flex flex-col items-start md:items-end gap-2">
-          {/* Level Badge */}
-          <div className={`bg-gradient-to-r ${levelGradient} text-white px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-2`}>
-            <span className="text-xl">🏆</span>
-            <div>
-              <p className="text-xs font-semibold opacity-80">현재 레벨</p>
-              <p className="text-xl font-black" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>LV.{level}</p>
-            </div>
-          </div>
-
-          {/* XP Bar */}
-          {isMaxLevel ? (
-            <div className="flex items-center gap-2 bg-[#fef3c7] border border-[#fbbf24] text-[#92400e] px-4 py-2 rounded-xl text-sm font-bold">
-              <span className="text-lg">⭐</span> MAX 레벨 달성!
-            </div>
-          ) : (
-            <div className="w-full md:w-56 space-y-1">
-              <div className="flex justify-between text-xs text-[#737784] font-semibold">
-                <span>다음 레벨까지</span>
-                <span className="text-[#00327d] font-bold">{nextLevelNeeds}개 남음!</span>
+          {!isAdmin && (
+            <>
+              <div className={`bg-gradient-to-r ${levelGradient} text-white px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-2`}>
+                <span className="text-xl">🏆</span>
+                <div>
+                  <p className="text-xs font-semibold opacity-80">현재 레벨</p>
+                  <p className="text-xl font-black" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>LV.{level}</p>
+                </div>
               </div>
-              <div className="w-full bg-[#e7e8e9] rounded-full h-2.5 overflow-hidden">
-                <div
-                  className={`bg-gradient-to-r ${levelGradient} h-full rounded-full transition-all duration-500`}
-                  style={{ width: `${(levelProgress / 5) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-[#737784]">{levelProgress}/5 완료</p>
-            </div>
+              {isMaxLevel ? (
+                <div className="flex items-center gap-2 bg-[#fef3c7] border border-[#fbbf24] text-[#92400e] px-4 py-2 rounded-xl text-sm font-bold">
+                  <span className="text-lg">⭐</span> MAX 레벨 달성!
+                </div>
+              ) : (
+                <div className="w-full md:w-56 space-y-1">
+                  <div className="flex justify-between text-xs text-[#737784] font-semibold">
+                    <span>다음 레벨까지</span>
+                    <span className="text-[#00327d] font-bold">{nextLevelNeeds}개 남음!</span>
+                  </div>
+                  <div className="w-full bg-[#e7e8e9] rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`bg-gradient-to-r ${levelGradient} h-full rounded-full transition-all duration-500`}
+                      style={{ width: `${(levelProgress / 5) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-[#737784]">{levelProgress}/5 완료</p>
+                </div>
+              )}
+            </>
           )}
-
           {isAdmin && (
             <button onClick={openWriteAssignment}
               className="flex items-center gap-2 bg-[#0047ab] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-all active:scale-95 shadow-sm">
@@ -163,46 +179,116 @@ export default function EducationClient({ initialAssignments, userName, isAdmin,
         </div>
       </section>
 
-      {/* ── 출석 체크 카드 ── */}
-      <section className="w-full">
-        <button onClick={handleAttendance} disabled={attendanceChecked}
-          className={`group relative w-full aspect-[2/1.1] md:aspect-[3/1] rounded-xl overflow-hidden active:scale-[0.98] transition-all duration-300 text-left shadow-lg ${
-            attendanceChecked ? 'bg-[#003e37] cursor-default' : 'bg-[#0047ab]'
-          }`}>
-          <div className="relative z-10 h-full p-6 flex flex-col justify-between">
-            <div>
-              <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full inline-flex items-center gap-2">
-                <span className="material-symbols-outlined text-white text-[18px]">fingerprint</span>
-                <span className="text-white text-sm font-semibold">{dateStr}</span>
-              </div>
-            </div>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* ── 출석 체크 (참여자만) / 모니터링 차트 (관리자) ── */}
+      {!isAdmin ? (
+        <section className="w-full">
+          <button onClick={handleAttendance} disabled={attendanceChecked || isPending}
+            className={`group relative w-full aspect-[2/1.1] md:aspect-[3/1] rounded-xl overflow-hidden active:scale-[0.98] transition-all duration-300 text-left shadow-lg ${
+              attendanceChecked ? 'bg-[#003e37] cursor-default' : 'bg-[#0047ab]'
+            }`}>
+            <div className="relative z-10 h-full p-6 flex flex-col justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-                  {attendanceChecked ? '출석 완료!' : '오늘 출석 체크하기'}
-                </h3>
-                <p className="text-[#a5bdff] mt-1">
-                  {attendanceChecked
-                    ? `${today.getHours()}:${String(today.getMinutes()).padStart(2, '0')} 출석 기록 완료`
-                    : '버튼을 눌러 출석을 확인하세요'}
-                </p>
+                <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full inline-flex items-center gap-2">
+                  <span className="material-symbols-outlined text-white text-[18px]">fingerprint</span>
+                  <span className="text-white text-sm font-semibold">{dateStr}</span>
+                </div>
               </div>
-              <div className={`px-6 py-3 rounded-xl font-bold shadow-sm flex items-center gap-2 w-fit transition-colors ${
-                attendanceChecked ? 'bg-white/20 text-white' : 'bg-white text-[#00327d] group-hover:bg-[#dae2ff]'
-              }`}>
-                <span>{attendanceChecked ? '출석 완료' : '출석 체크하기'}</span>
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+                    {attendanceChecked ? '오늘 출석 완료 ✅' : '오늘 출석 체크하기'}
+                  </h3>
+                  <p className="text-[#a5bdff] mt-1">
+                    {attendanceChecked
+                      ? '오늘 출석이 기록되었습니다'
+                      : '버튼을 눌러 출석을 확인하세요'}
+                  </p>
+                </div>
+                <div className={`px-6 py-3 rounded-xl font-bold shadow-sm flex items-center gap-2 w-fit transition-colors ${
+                  attendanceChecked ? 'bg-white/20 text-white' : 'bg-white text-[#00327d] group-hover:bg-[#dae2ff]'
+                }`}>
+                  <span>{attendanceChecked ? '출석 완료' : '출석 체크하기'}</span>
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-        </button>
-      </section>
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+          </button>
+        </section>
+      ) : (
+        /* 관리자 모니터링 차트 */
+        adminStats && (
+          <section className="bg-white border border-[#e1e3e4] rounded-xl p-6 shadow-sm space-y-5">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-[#0047ab]" style={{ fontVariationSettings: "'FILL' 1" }}>monitoring</span>
+              <h3 className="font-bold text-[#191c1d] text-lg" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>참여자 모니터링</h3>
+            </div>
+
+            {/* 출석 요약 */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="bg-[#f3f4f5] rounded-xl p-4 flex flex-col gap-1">
+                <p className="text-xs font-semibold text-[#737784]">오늘 출석</p>
+                <p className="text-2xl font-black text-[#0047ab]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+                  {adminStats.todayCount}<span className="text-sm font-semibold text-[#737784]">/{adminStats.totalParticipants}명</span>
+                </p>
+                <div className="w-full bg-[#e7e8e9] rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-[#0047ab] h-full rounded-full"
+                    style={{ width: adminStats.totalParticipants > 0 ? `${(adminStats.todayCount / adminStats.totalParticipants) * 100}%` : '0%' }} />
+                </div>
+              </div>
+              <div className="bg-[#f3f4f5] rounded-xl p-4 flex flex-col gap-1">
+                <p className="text-xs font-semibold text-[#737784]">평균 출석률</p>
+                <p className="text-2xl font-black text-[#003e37]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+                  {adminStats.avgAttendance}%
+                </p>
+                <div className="w-full bg-[#e7e8e9] rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-[#003e37] h-full rounded-full" style={{ width: `${adminStats.avgAttendance}%` }} />
+                </div>
+              </div>
+              <div className="bg-[#f3f4f5] rounded-xl p-4 flex flex-col gap-1 col-span-2 md:col-span-1">
+                <p className="text-xs font-semibold text-[#737784]">전체 참여자</p>
+                <p className="text-2xl font-black text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+                  {adminStats.totalParticipants}명
+                </p>
+                <p className="text-xs text-[#737784]">등록된 참여자</p>
+              </div>
+            </div>
+
+            {/* 카테고리별 제출률 바 차트 */}
+            {adminStats.categories.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-[#434653]">카테고리별 제출 현황</p>
+                {adminStats.categories.map(cat => (
+                  <div key={cat.category} className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${CAT_BAR_COLOR[cat.category] ?? 'bg-[#737784]'}`} />
+                        <span className="text-sm font-semibold text-[#191c1d]">{cat.category}</span>
+                        <span className="text-xs text-[#737784]">({cat.submitted}/{cat.total * adminStats.totalParticipants})</span>
+                      </div>
+                      <span className="text-sm font-bold text-[#00327d]">{cat.rate}%</span>
+                    </div>
+                    <div className="w-full bg-[#e7e8e9] rounded-full h-3 overflow-hidden">
+                      <div
+                        className={`${CAT_BAR_COLOR[cat.category] ?? 'bg-[#737784]'} h-full rounded-full transition-all duration-700`}
+                        style={{ width: `${cat.rate}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-[#737784]">항목 {cat.total}개 × 참여자 {adminStats.totalParticipants}명 기준</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {adminStats.categories.length === 0 && (
+              <p className="text-sm text-[#737784] text-center py-4">등록된 항목이 없습니다.</p>
+            )}
+          </section>
+        )
+      )}
 
       {/* ── 4가지 지표 대시보드 ── */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-
-        {/* 전체 참여율 */}
         <div className="bg-[#0047ab] text-white rounded-xl p-4 flex flex-col gap-2 shadow-sm col-span-2 md:col-span-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold opacity-80">전체 참여율</span>
@@ -215,7 +301,6 @@ export default function EducationClient({ initialAssignments, userName, isAdmin,
           <p className="text-xs opacity-70">{stats.submittedAll}/{stats.totalAll} 완료</p>
         </div>
 
-        {/* 캠프 */}
         <div className="bg-white border border-[#e1e3e4] rounded-xl p-4 flex flex-col gap-2 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#434653]">캠프 참여</span>
@@ -231,7 +316,6 @@ export default function EducationClient({ initialAssignments, userName, isAdmin,
           <p className="text-xs text-[#737784]">캠프 {stats.camp.total}개 중</p>
         </div>
 
-        {/* 과제 */}
         <div className="bg-white border border-[#e1e3e4] rounded-xl p-4 flex flex-col gap-2 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#434653]">과제 제출</span>
@@ -247,7 +331,6 @@ export default function EducationClient({ initialAssignments, userName, isAdmin,
           <p className="text-xs text-[#737784]">과제 {stats.task.total}개 중</p>
         </div>
 
-        {/* 멘토링 */}
         <div className="bg-white border border-[#e1e3e4] rounded-xl p-4 flex flex-col gap-2 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#434653]">멘토링 참여</span>
@@ -294,16 +377,13 @@ export default function EducationClient({ initialAssignments, userName, isAdmin,
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* 카테고리 칩 */}
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${cat.chip}`}>
                           <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>{cat.icon}</span>
                           {a.category}
                         </span>
-                        {/* 회차 칩 */}
                         <span className={`text-xs font-bold px-2 py-0.5 rounded ${a.submitted ? 'bg-[#e7e8e9] text-[#434653]' : 'bg-[#dae2ff] text-[#001946]'}`}>
                           {a.week}회차
                         </span>
-                        {/* D-day */}
                         {!a.submitted && a.daysLeft !== null && (
                           <span className={`text-xs font-bold px-2 py-0.5 rounded ${a.daysLeft <= 3 ? 'bg-[#ffdad8] text-[#410007]' : 'bg-[#fff3cd] text-[#664d03]'}`}>
                             D-{a.daysLeft}

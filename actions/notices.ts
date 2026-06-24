@@ -39,6 +39,29 @@ export async function createNotice(formData: FormData) {
   }
 }
 
+export async function updateNotice(id: number, formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
+
+  const title    = String(formData.get('title')    ?? '').trim();
+  const content  = String(formData.get('content')  ?? '').trim();
+  const category = String(formData.get('category') ?? '공지사항').trim();
+  const isPinned = formData.get('isPinned') === 'true';
+  const firstCat = category.split(',')[0].trim();
+  const icon     = iconMap[firstCat] ?? 'campaign';
+
+  if (!title || !content) return { success: false, error: '제목과 내용을 입력해주세요.' };
+
+  try {
+    await sql`UPDATE notices SET title=${title}, content=${content}, category=${category}, is_pinned=${isPinned}, icon=${icon} WHERE id=${id}`;
+    revalidatePath('/notices');
+    return { success: true };
+  } catch (error) {
+    console.error('[updateNotice]', error);
+    return { success: false, error: '수정 중 오류가 발생했습니다.' };
+  }
+}
+
 export async function deleteNotice(id: number) {
   const session = await auth();
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
