@@ -9,11 +9,11 @@ const statusConfig = {
   '위험': { label: '🔴위험', bg: 'bg-[#E63946]', text: 'text-white', bar: 'bg-[#ba1a1a]' },
 } as const;
 
-type SortKey = 'name' | 'attendance_desc' | 'attendance_asc';
+type SortKey = 'name' | 'participation_desc' | 'participation_asc';
 const SORT_LABELS: Record<SortKey, string> = {
   name: '이름순',
-  attendance_desc: '출석률 높은순',
-  attendance_asc: '출석률 낮은순',
+  participation_desc: '참여율 높은순',
+  participation_asc: '참여율 낮은순',
 };
 
 interface Participant {
@@ -63,7 +63,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
     .filter(p => filterTeam === '전체' || p.team === filterTeam)
     .sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name, 'ko');
-      if (sortBy === 'attendance_desc') return b.participationRate - a.participationRate;
+      if (sortBy === 'participation_desc') return b.participationRate - a.participationRate;
       return a.participationRate - b.participationRate;
     });
 
