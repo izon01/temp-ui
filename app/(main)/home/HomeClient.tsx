@@ -71,16 +71,15 @@ export default function HomeClient({ participants, participantCount, avgParticip
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
 
       {/* ── Hero Banner ── */}
-      <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff]">
-        <div className="flex flex-col justify-center gap-3">
-          <p className="text-xs font-bold tracking-widest text-[#0047ab] uppercase">경북청년인재스쿨</p>
+      <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff]">
+        <div className="flex flex-col justify-center gap-4">
           <h1
-            className="text-2xl md:text-3xl font-black text-[#191c1d] leading-snug"
+            className="text-3xl md:text-5xl font-extrabold text-[#191c1d] leading-tight"
             style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}
           >
             꿈꾸는 미래를 향해,<br />한 걸음 더
           </h1>
-          <p className="text-[#434653] text-sm md:text-base">
+          <p className="text-[#434653] text-base md:text-xl leading-relaxed">
             청년인재스쿨이 여러분의 성장을 응원합니다.
           </p>
         </div>
@@ -89,7 +88,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
           <img
             src="/img1.png"
             alt="경북청년인재스쿨 히어로 이미지"
-            style={{ width: '180px', height: 'auto' }}
+            style={{ width: '220px', height: 'auto' }}
             className="object-contain drop-shadow-md"
           />
         </div>
