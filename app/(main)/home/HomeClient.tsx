@@ -19,12 +19,13 @@ const SORT_LABELS: Record<SortKey, string> = {
 interface Participant {
   id: number; name: string; team: string; track: string;
   attendance: number; status: string; lastAccess: string;
+  participationRate: number;
 }
 
 interface Props {
   participants: Participant[];
   participantCount: number;
-  initialAttendanceRate: number;
+  avgParticipationRate: number;
   submissionRate: number;
 }
 
@@ -33,7 +34,7 @@ function todayStr() {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
 }
 
-export default function HomeClient({ participants, participantCount, initialAttendanceRate, submissionRate }: Props) {
+export default function HomeClient({ participants, participantCount, avgParticipationRate, submissionRate }: Props) {
   const { openParticipantProfile } = useModal();
   const today = todayStr();
 
@@ -62,8 +63,8 @@ export default function HomeClient({ participants, participantCount, initialAtte
     .filter(p => filterTeam === '전체' || p.team === filterTeam)
     .sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name, 'ko');
-      if (sortBy === 'attendance_desc') return b.attendance - a.attendance;
-      return a.attendance - b.attendance;
+      if (sortBy === 'attendance_desc') return b.participationRate - a.participationRate;
+      return a.participationRate - b.participationRate;
     });
 
   return (
@@ -96,18 +97,18 @@ export default function HomeClient({ participants, participantCount, initialAtte
 
       {/* Summary Dashboard */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 출석률 */}
+        {/* 평균 참여율 */}
         <div className="bg-[#0047ab] text-white rounded-xl p-6 shadow-sm flex flex-col justify-between h-40">
           <div className="flex justify-between items-start">
-            <span className="text-sm font-semibold opacity-80">전체 출석률</span>
+            <span className="text-sm font-semibold opacity-80">평균 참여율</span>
             <span className="material-symbols-outlined">analytics</span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{initialAttendanceRate}%</span>
+            <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{avgParticipationRate}%</span>
             <span className="text-sm text-[#8cf5e4]">{today}</span>
           </div>
           <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-            <div className="bg-white h-full transition-all duration-500" style={{ width: `${initialAttendanceRate}%` }} />
+            <div className="bg-white h-full transition-all duration-500" style={{ width: `${avgParticipationRate}%` }} />
           </div>
         </div>
 
@@ -250,10 +251,10 @@ export default function HomeClient({ participants, participantCount, initialAtte
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between text-sm text-[#434653]">
-                    <span>출석률</span><span>{p.attendance}%</span>
+                    <span>전체 참여율</span><span>{p.participationRate}%</span>
                   </div>
                   <div className="w-full bg-[#edeeef] h-2 rounded-full overflow-hidden">
-                    <div className={`${status.bar} h-full`} style={{ width: `${p.attendance}%` }} />
+                    <div className={`${status.bar} h-full`} style={{ width: `${p.participationRate}%` }} />
                   </div>
                 </div>
                 <div className="flex items-center gap-4 md:justify-end">

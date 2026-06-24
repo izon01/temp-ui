@@ -137,3 +137,60 @@ export async function getParticipants() {
     return null;
   }
 }
+
+/** 전 참여자 개인별 전체 참여율 + 평균 참여율을 한 번의 쿼리로 계산 */
+export async function getParticipantsWithParticipationRate(): Promise<{
+  participants: Array<{
+    id: number; name: string; team: string; track: string;
+    attendance: number; status: string; lastAccess: string;
+    participationRate: number;
+  }>;
+  avgParticipationRate: number;
+}> {
+  try {
+    const rows = await sql`
+      SELECT
+        p.id,
+        p.name,
+        p.team,
+        p.track,
+        p.attendance,
+        p.status,
+        p.last_access AS "lastAccess",
+        COUNT(a.id)::int   AS total_items,
+        COUNT(s.id)::int   AS submitted_items
+      FROM participants p
+      CROSS JOIN assignments a
+      LEFT JOIN assignment_submissions s
+        ON s.assignment_id = a.id AND s.participant_id = p.id
+      WHERE p.role = 'participant'
+      GROUP BY p.id, p.name, p.team, p.track, p.attendance, p.status, p.last_access
+      ORDER BY p.id
+    `;
+
+    const participants = rows.map(r => {
+      const total     = Number(r.total_items);
+      const submitted = Number(r.submitted_items);
+      const participationRate = total > 0 ? Math.min(100, Math.round((submitted / total) * 100)) : 0;
+      return {
+        id: Number(r.id),
+        name: String(r.name ?? ''),
+        team: String(r.team ?? ''),
+        track: String(r.track ?? ''),
+        attendance: Number(r.attendance ?? 0),
+        status: String(r.status ?? '정상'),
+        lastAccess: String(r.lastAccess ?? ''),
+        participationRate,
+      };
+    });
+
+    const avgParticipationRate = participants.length > 0
+      ? Math.round(participants.reduce((sum, p) => sum + p.participationRate, 0) / participants.length)
+      : 0;
+
+    return { participants, avgParticipationRate };
+  } catch (error) {
+    console.error('[getParticipantsWithParticipationRate]', error);
+    return { participants: [], avgParticipationRate: 0 };
+  }
+}
