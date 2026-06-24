@@ -2,6 +2,7 @@
 
 import { sql } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { revalidatePath } from 'next/cache';
 
 export async function getAverageAttendance(): Promise<number> {
   try {
@@ -86,6 +87,7 @@ export async function updateParticipantProfile(
           profile_image = ${data.profileImage ?? null}
       WHERE id = ${id}
     `;
+    revalidatePath('/home');
     return { success: true };
   } catch (error) {
     console.error('[updateParticipantProfile]', error);

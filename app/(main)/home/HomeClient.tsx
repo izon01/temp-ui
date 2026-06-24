@@ -111,7 +111,9 @@ export default function HomeClient({ participants, participantCount, initialAtte
                       <span className="font-bold text-[#191c1d]">{p.name}</span>
                       <span className={`${status.bg} ${status.text} text-[10px] px-2 py-0.5 rounded-full font-bold`}>{status.label}</span>
                     </div>
-                    <p className="text-sm text-[#434653]">{p.team} | {p.track}</p>
+                    <p className="text-sm text-[#434653]">
+                      {p.team || '직무 미설정'} | {p.track || '지원분야 미설정'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex-1 space-y-1">
