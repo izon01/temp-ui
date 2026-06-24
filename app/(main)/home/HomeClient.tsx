@@ -99,7 +99,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
         {/* 평균 참여율 */}
         <div className="bg-[#0047ab] text-white rounded-xl p-6 shadow-sm flex flex-col justify-between h-40">
           <div className="flex justify-between items-start">
-            <span className="text-sm font-semibold opacity-80">평균 참여율</span>
+            <span className="text-sm font-semibold opacity-80">전체 활동지수</span>
             <span className="material-symbols-outlined">analytics</span>
           </div>
           <div className="flex items-baseline gap-1">
@@ -250,7 +250,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between text-sm text-[#434653]">
-                    <span>전체 참여율</span><span>{p.participationRate}%</span>
+                    <span>활동지수</span><span>{p.participationRate}%</span>
                   </div>
                   <div className="w-full bg-[#edeeef] h-2 rounded-full overflow-hidden">
                     <div className={`${status.bar} h-full`} style={{ width: `${p.participationRate}%` }} />
