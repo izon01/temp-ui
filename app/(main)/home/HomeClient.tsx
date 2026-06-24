@@ -77,7 +77,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
             className="text-3xl md:text-5xl font-extrabold text-[#191c1d] leading-tight"
             style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}
           >
-            당신을<br />꿈꾸는 미래를 향해,<br />한 걸음 더
+            당신의<br />꿈꾸는 미래를 향해,<br />한 걸음 더
           </h1>
           <p className="text-[#434653] text-base md:text-xl leading-relaxed">
             청년인재스쿨이 여러분의 성장을 응원합니다.
