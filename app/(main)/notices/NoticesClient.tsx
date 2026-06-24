@@ -18,9 +18,16 @@ interface Props {
 }
 
 const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
+const ITEMS_PER_PAGE = 10;
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
+}
 
 export default function NoticesClient({ initialNotices, searchQuery }: Props) {
   const [activeFilter, setActiveFilter] = useState('전체');
+  const [currentPage, setCurrentPage] = useState(1);
   const [inputValue, setInputValue] = useState(searchQuery);
   const [isPending, startTransition] = useTransition();
   const { openNoticeDetail, openWriteNotice } = useModal();
@@ -29,6 +36,7 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
   const isAdmin = session?.user?.role === 'admin';
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const today = todayStr();
 
   const handleDeleteNotice = (e: React.MouseEvent, notice: Notice) => {
     e.stopPropagation();
@@ -53,9 +61,26 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
     if (e.key === 'Enter') handleSearch();
   };
 
+  const handleFilterChange = (f: string) => {
+    setActiveFilter(f);
+    setCurrentPage(1);
+  };
+
   const filtered = activeFilter === '전체'
     ? initialNotices
     : initialNotices.filter(n => n.category.split(',').map(c => c.trim()).includes(activeFilter));
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+
+  // 최대 5개 페이지 번호 표시 (현재 페이지 중심)
+  const pageNums: number[] = [];
+  const half = 2;
+  let start = Math.max(1, safePage - half);
+  let end   = Math.min(totalPages, start + 4);
+  start = Math.max(1, end - 4);
+  for (let i = start; i <= end; i++) pageNums.push(i);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
@@ -97,7 +122,7 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
             {searchQuery ? '검색 결과' : '전체 게시글'}
           </span>
           <span className="text-[40px] font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{filtered.length}</span>
-          <span className="text-[#737784] text-xs">DB 실시간 연동</span>
+          <span className="text-[#737784] text-xs">{today}</span>
         </div>
       </section>
 
@@ -132,7 +157,7 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
           {FILTERS.map(f => (
             <button
               key={f}
-              onClick={() => setActiveFilter(f)}
+              onClick={() => handleFilterChange(f)}
               className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
                 activeFilter === f ? 'bg-[#00327d] text-white' : 'bg-white border border-[#c3c6d5] text-[#434653] hover:bg-[#f3f4f5]'
               }`}
@@ -156,11 +181,11 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
             }
           </div>
         ) : (
-          filtered.map((n, idx) => (
+          paginated.map((n, idx) => (
             <div
               key={n.id}
               onClick={() => openNoticeDetail(n as any)}
-              className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
+              className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < paginated.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
             >
               <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${n.isPinned ? 'bg-[#db313f]' : 'bg-[#edeeef]'}`}>
                 <span className={`material-symbols-outlined ${n.isPinned ? 'text-white' : 'text-[#434653]'}`} style={{ fontVariationSettings: n.isPinned ? "'FILL' 1" : "'FILL' 0" }}>
@@ -202,19 +227,35 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
       </div>
 
       {/* Pagination */}
-      <div className="mt-6 flex justify-center gap-2">
-        <button className="w-10 h-10 rounded-lg border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors">
-          <span className="material-symbols-outlined">chevron_left</span>
-        </button>
-        {[1,2,3,4,5].map(n => (
-          <button key={n} className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold transition-colors ${n === 1 ? 'bg-[#00327d] text-white' : 'border border-[#c3c6d5] hover:bg-[#f3f4f5] text-[#434653]'}`}>
-            {n}
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-center gap-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            className="w-10 h-10 rounded-lg border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined">chevron_left</span>
           </button>
-        ))}
-        <button className="w-10 h-10 rounded-lg border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors">
-          <span className="material-symbols-outlined">chevron_right</span>
-        </button>
-      </div>
+          {pageNums.map(n => (
+            <button
+              key={n}
+              onClick={() => setCurrentPage(n)}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold transition-colors ${
+                n === safePage ? 'bg-[#00327d] text-white' : 'border border-[#c3c6d5] hover:bg-[#f3f4f5] text-[#434653]'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            className="w-10 h-10 rounded-lg border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

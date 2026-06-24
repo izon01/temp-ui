@@ -25,17 +25,24 @@ const categoryStyle: Record<string, { bg: string; text: string }> = {
 };
 
 const TABS = ['전체', '자유게시판', '취업/진로', '스터디모집'];
+const ITEMS_PER_PAGE = 9;
 
 function timeAgo(date: string) {
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (diff < 60)   return '방금 전';
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 60)    return '방금 전';
+  if (diff < 3600)  return `${Math.floor(diff / 60)}분 전`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
   return `${Math.floor(diff / 86400)}일 전`;
 }
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
+}
+
 export default function CommunityClient({ initialPosts, searchQuery }: Props) {
   const [activeTab, setActiveTab] = useState('전체');
+  const [currentPage, setCurrentPage] = useState(1);
   const [inputValue, setInputValue] = useState(searchQuery);
   const [isPending, startTransition] = useTransition();
   const { openWrite, openPostDetail } = useModal();
@@ -44,6 +51,7 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
   const isAdmin = session?.user?.role === 'admin';
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const today = todayStr();
 
   const handleSearch = () => {
     const q = inputRef.current?.value.trim() ?? '';
@@ -68,9 +76,25 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
     });
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
   const filtered = activeTab === '전체'
     ? initialPosts
     : initialPosts.filter(p => p.category === activeTab);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+
+  const half = 2;
+  let start = Math.max(1, safePage - half);
+  let end   = Math.min(totalPages, start + 4);
+  start = Math.max(1, end - 4);
+  const pageNums: number[] = [];
+  for (let i = start; i <= end; i++) pageNums.push(i);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
@@ -88,6 +112,17 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
           글쓰기
         </button>
       </header>
+
+      {/* 전체 게시글 수 위젯 */}
+      <div className="bg-[#e7e8e9] rounded-xl p-5 mb-6 flex items-center justify-between">
+        <div>
+          <p className="text-[#434653] text-xs uppercase tracking-wider mb-0.5">전체 게시글</p>
+          <p className="text-3xl font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+            {filtered.length}<span className="text-base font-normal text-[#737784] ml-2">{today}</span>
+          </p>
+        </div>
+        <span className="material-symbols-outlined text-[40px] text-[#c3c6d5]" style={{ fontVariationSettings: "'FILL' 1" }}>forum</span>
+      </div>
 
       {/* Search & filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -120,7 +155,7 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
           {TABS.map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
                 activeTab === tab ? 'bg-[#00327d] text-white' : 'bg-[#e7e8e9] text-[#434653] hover:bg-[#edeeef]'
               }`}
@@ -144,7 +179,7 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(post => {
+          {paginated.map(post => {
             const catStyle = categoryStyle[post.category] ?? { bg: 'bg-[#e7e8e9]', text: 'text-[#434653]' };
             return (
               <article
@@ -162,7 +197,6 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
                 })}
                 className="bg-white rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 border border-transparent cursor-pointer flex flex-col overflow-hidden relative"
               >
-                {/* 관리자 삭제 버튼 */}
                 {isAdmin && (
                   <button
                     onClick={(e) => handleDeletePost(e, post)}
@@ -209,15 +243,37 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
       )}
 
       {/* Pagination */}
-      <div className="mt-10 flex justify-center items-center gap-3">
-        <button className="material-symbols-outlined p-2 text-[#737784] hover:text-[#00327d] transition-colors">chevron_left</button>
-        <div className="flex gap-2">
-          {[1,2,3,4,5].map(n => (
-            <button key={n} className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${n === 1 ? 'bg-[#00327d] text-white' : 'hover:bg-[#f3f4f5] text-[#434653]'}`}>{n}</button>
-          ))}
+      {totalPages > 1 && (
+        <div className="mt-10 flex justify-center items-center gap-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            className="w-9 h-9 rounded-lg border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+          </button>
+          <div className="flex gap-2">
+            {pageNums.map(n => (
+              <button
+                key={n}
+                onClick={() => setCurrentPage(n)}
+                className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
+                  n === safePage ? 'bg-[#00327d] text-white' : 'border border-[#c3c6d5] hover:bg-[#f3f4f5] text-[#434653]'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            className="w-9 h-9 rounded-lg border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+          </button>
         </div>
-        <button className="material-symbols-outlined p-2 text-[#737784] hover:text-[#00327d] transition-colors">chevron_right</button>
-      </div>
+      )}
 
       {/* Mobile FAB */}
       <button

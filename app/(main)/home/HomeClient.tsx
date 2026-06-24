@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useModal } from '@/components/Modals/ModalContext';
 
 const statusConfig = {
@@ -7,6 +8,13 @@ const statusConfig = {
   '주의': { label: '🟡주의', bg: 'bg-[#FFB703]', text: 'text-[#410007]', bar: 'bg-[#FFB703]' },
   '위험': { label: '🔴위험', bg: 'bg-[#E63946]', text: 'text-white', bar: 'bg-[#ba1a1a]' },
 } as const;
+
+type SortKey = 'name' | 'attendance_desc' | 'attendance_asc';
+const SORT_LABELS: Record<SortKey, string> = {
+  name: '이름순',
+  attendance_desc: '출석률 높은순',
+  attendance_asc: '출석률 낮은순',
+};
 
 interface Participant {
   id: number; name: string; team: string; track: string;
@@ -20,14 +28,49 @@ interface Props {
   submissionRate: number;
 }
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
+}
+
 export default function HomeClient({ participants, participantCount, initialAttendanceRate, submissionRate }: Props) {
   const { openParticipantProfile } = useModal();
+  const today = todayStr();
+
+  const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [filterTeam, setFilterTeam] = useState('전체');
+  const [showSort, setShowSort] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // 클릭 외부 닫기
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSort(false);
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilter(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // 고유 팀 목록
+  const teams = ['전체', ...Array.from(new Set(participants.map(p => p.team).filter(Boolean)))];
+
+  // 필터 → 정렬
+  const displayed = [...participants]
+    .filter(p => filterTeam === '전체' || p.team === filterTeam)
+    .sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name, 'ko');
+      if (sortBy === 'attendance_desc') return b.attendance - a.attendance;
+      return a.attendance - b.attendance;
+    });
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
       {/* Summary Dashboard */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 출석률 (DB 실데이터) */}
+        {/* 출석률 */}
         <div className="bg-[#0047ab] text-white rounded-xl p-6 shadow-sm flex flex-col justify-between h-40">
           <div className="flex justify-between items-start">
             <span className="text-sm font-semibold opacity-80">전체 출석률</span>
@@ -35,7 +78,7 @@ export default function HomeClient({ participants, participantCount, initialAtte
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-bold" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{initialAttendanceRate}%</span>
-            <span className="text-sm text-[#8cf5e4]">실시간 DB</span>
+            <span className="text-sm text-[#8cf5e4]">{today}</span>
           </div>
           <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
             <div className="bg-white h-full transition-all duration-500" style={{ width: `${initialAttendanceRate}%` }} />
@@ -43,22 +86,22 @@ export default function HomeClient({ participants, participantCount, initialAtte
         </div>
 
         {/* 과제 제출률 */}
-        <div className="bg-white border border-[#e1e3e4] rounded-xl p-6 shadow-sm flex flex-col justify-between h-40 hover:scale-[1.02] transition-transform cursor-pointer">
+        <div className="bg-white border border-[#e1e3e4] rounded-xl p-6 shadow-sm flex flex-col justify-between h-40">
           <div className="flex justify-between items-start">
             <span className="text-sm text-[#434653]">과제 제출률</span>
             <span className="material-symbols-outlined text-[#b7102a]">assignment_turned_in</span>
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{submissionRate}%</span>
-            <span className="text-sm text-[#434653]">실시간 DB</span>
+            <span className="text-sm text-[#434653]">{today}</span>
           </div>
           <div className="w-full bg-[#edeeef] h-2 rounded-full overflow-hidden">
             <div className="bg-[#b7102a] h-full transition-all duration-500" style={{ width: `${submissionRate}%` }} />
           </div>
         </div>
 
-        {/* 현재 인원 (DB 연동) */}
-        <div className="bg-white border border-[#e1e3e4] rounded-xl p-6 shadow-sm flex flex-col justify-between h-40 hover:scale-[1.02] transition-transform cursor-pointer">
+        {/* 현재 인원 */}
+        <div className="bg-white border border-[#e1e3e4] rounded-xl p-6 shadow-sm flex flex-col justify-between h-40">
           <div className="flex justify-between items-start">
             <span className="text-sm text-[#434653]">현재 인원</span>
             <span className="material-symbols-outlined text-[#003e37]">groups</span>
@@ -85,19 +128,79 @@ export default function HomeClient({ participants, participantCount, initialAtte
       {/* Participants */}
       <section className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>참여자 모니터링</h2>
+          <h2 className="text-xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+            참여자 모니터링
+            {filterTeam !== '전체' && (
+              <span className="ml-2 text-sm font-normal text-[#0047ab]">({filterTeam})</span>
+            )}
+          </h2>
           <div className="flex gap-2">
-            <button className="bg-[#f3f4f5] px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 hover:bg-[#e7e8e9] transition-colors">
-              <span className="material-symbols-outlined text-[18px]">filter_list</span>필터
-            </button>
-            <button className="bg-[#f3f4f5] px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 hover:bg-[#e7e8e9] transition-colors">
-              <span className="material-symbols-outlined text-[18px]">sort</span>정렬
-            </button>
+            {/* 필터 드롭다운 */}
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => { setShowFilter(p => !p); setShowSort(false); }}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 transition-colors ${
+                  filterTeam !== '전체' ? 'bg-[#0047ab] text-white' : 'bg-[#f3f4f5] hover:bg-[#e7e8e9]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">filter_list</span>
+                필터{filterTeam !== '전체' ? `: ${filterTeam}` : ''}
+              </button>
+              {showFilter && (
+                <div className="absolute right-0 mt-1 w-44 bg-white border border-[#e1e3e4] rounded-xl shadow-lg z-30 overflow-hidden">
+                  {teams.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => { setFilterTeam(t); setShowFilter(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                        filterTeam === t ? 'bg-[#dae2ff] text-[#00327d] font-bold' : 'hover:bg-[#f3f4f5] text-[#434653]'
+                      }`}
+                    >
+                      {t}
+                      {filterTeam === t && <span className="material-symbols-outlined text-[16px]">check</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 정렬 드롭다운 */}
+            <div className="relative" ref={sortRef}>
+              <button
+                onClick={() => { setShowSort(p => !p); setShowFilter(false); }}
+                className="bg-[#f3f4f5] px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1 hover:bg-[#e7e8e9] transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">sort</span>
+                {SORT_LABELS[sortBy]}
+              </button>
+              {showSort && (
+                <div className="absolute right-0 mt-1 w-44 bg-white border border-[#e1e3e4] rounded-xl shadow-lg z-30 overflow-hidden">
+                  {(Object.keys(SORT_LABELS) as SortKey[]).map(key => (
+                    <button
+                      key={key}
+                      onClick={() => { setSortBy(key); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                        sortBy === key ? 'bg-[#dae2ff] text-[#00327d] font-bold' : 'hover:bg-[#f3f4f5] text-[#434653]'
+                      }`}
+                    >
+                      {SORT_LABELS[key]}
+                      {sortBy === key && <span className="material-symbols-outlined text-[16px]">check</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          {participants.map(p => {
+          {displayed.length === 0 ? (
+            <div className="py-16 text-center text-[#737784]">
+              <span className="material-symbols-outlined text-[48px] block mb-2">person_off</span>
+              <p className="font-semibold">해당 조건의 참여자가 없습니다.</p>
+              <button onClick={() => setFilterTeam('전체')} className="mt-3 text-sm text-[#0047ab] underline">필터 초기화</button>
+            </div>
+          ) : displayed.map(p => {
             const status = statusConfig[p.status as keyof typeof statusConfig] ?? statusConfig['정상'];
             return (
               <div
