@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getParticipantCount, getParticipants, getAverageAttendance } from '@/actions/participants';
 import { participants as mockParticipants } from '@/data/mockData';
 import HomeClient from './HomeClient';

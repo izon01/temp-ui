@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useModal } from '@/components/Modals/ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import { deleteAssignment } from '@/actions/assignments';
+import { checkAttendanceAction } from '@/actions/attendance';
 import { useRouter } from 'next/navigation';
 
 interface Assignment {
@@ -19,9 +20,28 @@ interface Props {
 
 export default function EducationClient({ initialAssignments, userName, isAdmin }: Props) {
   const { openSubmitAssignment, openWriteAssignment } = useModal();
-  const { attendanceChecked, checkAttendance, showToast } = useApp();
+  const { showToast } = useApp();
+  const [attendanceChecked, setAttendanceChecked] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const handleAttendance = () => {
+    if (attendanceChecked) return;
+    startTransition(async () => {
+      const result = await checkAttendanceAction();
+      if (result.success) {
+        setAttendanceChecked(true);
+        if (result.alreadyChecked) {
+          showToast('오늘 이미 출석하셨습니다 ✓');
+        } else {
+          showToast('출석이 완료되었습니다 ✓');
+          router.refresh();
+        }
+      } else {
+        showToast(result.error ?? '출석 처리 중 오류가 발생했습니다.');
+      }
+    });
+  };
 
   // 옵티미스틱: 제출 완료 처리 (revalidatePath 전 즉시 UI 반영)
   const [localSubmitted, setLocalSubmitted] = useState<Set<number>>(new Set());
@@ -86,7 +106,7 @@ export default function EducationClient({ initialAssignments, userName, isAdmin 
       {/* Attendance Card */}
       <section className="w-full">
         <button
-          onClick={() => !attendanceChecked && checkAttendance()}
+          onClick={handleAttendance}
           disabled={attendanceChecked}
           className={`group relative w-full aspect-[2/1.1] md:aspect-[3/1] rounded-xl overflow-hidden active:scale-[0.98] transition-all duration-300 text-left shadow-lg ${
             attendanceChecked ? 'bg-[#003e37] cursor-default' : 'bg-[#0047ab]'

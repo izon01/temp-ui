@@ -46,6 +46,38 @@ export async function getParticipantCount(): Promise<number> {
   }
 }
 
+export async function getParticipantProfile(id: number) {
+  try {
+    const rows = await sql`
+      SELECT id, name, email, team, track, login_id
+      FROM participants WHERE id = ${id} LIMIT 1
+    `;
+    if (!rows[0]) return null;
+    const r = rows[0];
+    return {
+      id: Number(r.id), name: String(r.name ?? ''),
+      email: String(r.email ?? ''), team: String(r.team ?? ''),
+      track: String(r.track ?? ''), loginId: String(r.login_id ?? ''),
+    };
+  } catch (error) {
+    console.error('[getParticipantProfile]', error);
+    return null;
+  }
+}
+
+export async function updateParticipantProfile(id: number, data: { team: string; track: string }) {
+  try {
+    await sql`
+      UPDATE participants SET team = ${data.team}, track = ${data.track}
+      WHERE id = ${id}
+    `;
+    return { success: true };
+  } catch (error) {
+    console.error('[updateParticipantProfile]', error);
+    return { success: false, error: '저장 중 오류가 발생했습니다.' };
+  }
+}
+
 export async function getParticipants() {
   try {
     const rows = await sql`
