@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function EducationClient({ initialAssignments, userName, isAdmin }: Props) {
-  const { openSubmitAssignment, openWriteAssignment } = useModal();
+  const { openSubmitAssignment, openWriteAssignment, openEditAssignment, openAssignmentSubmissions } = useModal();
   const { showToast } = useApp();
   const [attendanceChecked, setAttendanceChecked] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -213,30 +213,58 @@ export default function EducationClient({ initialAssignments, userName, isAdmin 
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
-                    {a.submitted ? (
+                    {isAdmin ? (
+                      /* ── 관리자 버튼 ── */
                       <>
-                        <span className="bg-[#8cf5e4] text-[#00201c] px-4 py-2 rounded-full text-sm font-semibold">제출완료</span>
-                        <button className="bg-[#e7e8e9] text-[#434653] px-4 py-2 rounded-lg text-sm">상세보기</button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="bg-[#ffdad6] text-[#93000a] px-4 py-2 rounded-full text-sm font-semibold">미제출</span>
                         <button
-                          onClick={() => handleSubmitClick(a)}
+                          onClick={() => openAssignmentSubmissions({
+                            id: a.id, week: a.week, title: a.title, description: a.description,
+                            deadline: a.deadline, daysLeft: a.daysLeft, submitted: a.submitted,
+                          })}
+                          className="bg-[#dae2ff] text-[#001946] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#b8c5f2] active:scale-95 transition-all"
+                        >
+                          제출 현황 보기
+                        </button>
+                        <button
+                          onClick={() => openEditAssignment({
+                            id: a.id, week: a.week, title: a.title, description: a.description,
+                            deadline: a.deadline, daysLeft: a.daysLeft, submitted: a.submitted,
+                          })}
                           className="bg-[#00327d] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#0047ab] active:scale-95 transition-all shadow-sm"
                         >
-                          과제 제출하기
+                          과제 수정하기
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAssignment(a.id, a.title)}
+                          disabled={isPending}
+                          className="bg-[#E63946] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          삭제
                         </button>
                       </>
-                    )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDeleteAssignment(a.id, a.title)}
-                        disabled={isPending}
-                        className="bg-[#E63946] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        삭제
-                      </button>
+                    ) : (
+                      /* ── 참여자 버튼 ── */
+                      a.submitted ? (
+                        <>
+                          <span className="bg-[#8cf5e4] text-[#00201c] px-4 py-2 rounded-full text-sm font-semibold">제출완료</span>
+                          <button
+                            onClick={() => handleSubmitClick(a)}
+                            className="bg-[#e7e8e9] text-[#434653] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#d5d6d8] active:scale-95 transition-all"
+                          >
+                            상세보기
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="bg-[#ffdad6] text-[#93000a] px-4 py-2 rounded-full text-sm font-semibold">미제출</span>
+                          <button
+                            onClick={() => handleSubmitClick(a)}
+                            className="bg-[#00327d] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#0047ab] active:scale-95 transition-all shadow-sm"
+                          >
+                            과제 제출하기
+                          </button>
+                        </>
+                      )
                     )}
                   </div>
                 </div>

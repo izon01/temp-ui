@@ -27,6 +27,7 @@ export interface NoticeDetail {
 type ModalType =
   | 'forgotPassword' | 'postDetail' | 'noticeDetail' | 'profile'
   | 'write' | 'writeNotice' | 'submitAssignment' | 'writeAssignment'
+  | 'editAssignment' | 'assignmentSubmissions'
   | 'participantProfile' | null;
 
 interface ModalContextValue {
@@ -43,6 +44,8 @@ interface ModalContextValue {
   openWriteNotice: () => void;
   openSubmitAssignment: (assignment: SelectedAssignment) => void;
   openWriteAssignment: () => void;
+  openEditAssignment: (assignment: SelectedAssignment) => void;
+  openAssignmentSubmissions: (assignment: SelectedAssignment) => void;
   openParticipantProfile: (participant: SelectedParticipant) => void;
   closeModal: () => void;
 }
@@ -69,6 +72,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       openWriteNotice: () => setOpenModal('writeNotice'),
       openSubmitAssignment: (a) => { setSelectedAssignment(a); setOpenModal('submitAssignment'); },
       openWriteAssignment: () => setOpenModal('writeAssignment'),
+      openEditAssignment: (a) => { setSelectedAssignment(a); setOpenModal('editAssignment'); },
+      openAssignmentSubmissions: (a) => { setSelectedAssignment(a); setOpenModal('assignmentSubmissions'); },
       openParticipantProfile: (p) => { setSelectedParticipant(p); setOpenModal('participantProfile'); },
       closeModal,
     }}>

@@ -60,6 +60,86 @@ export async function deleteAssignment(id: number) {
   }
 }
 
+/** 참여자 본인의 특정 과제 제출물 조회 */
+export async function getMySubmission(assignmentId: number) {
+  const session = await auth();
+  if (!session?.user) return null;
+  try {
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content TEXT`;
+    const rows = await sql`
+      SELECT link, file_name AS "fileName", content,
+             TO_CHAR(submitted_at, 'YYYY-MM-DD HH24:MI') AS "submittedAt"
+      FROM assignment_submissions
+      WHERE assignment_id = ${assignmentId} AND participant_id = ${session.user.id}
+      LIMIT 1
+    `;
+    if (!rows[0]) return null;
+    const r = rows[0];
+    return {
+      link:        r.link        ? String(r.link)        : '',
+      fileName:    r.fileName    ? String(r.fileName)    : '',
+      content:     r.content     ? String(r.content)     : '',
+      submittedAt: r.submittedAt ? String(r.submittedAt) : '',
+    };
+  } catch (error) {
+    console.error('[getMySubmission]', error);
+    return null;
+  }
+}
+
+/** 관리자용: 특정 과제의 전체 참여자 제출 현황 조회 */
+export async function getAssignmentSubmissions(assignmentId: number) {
+  const session = await auth();
+  if (session?.user?.role !== 'admin') return [];
+  try {
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content TEXT`;
+    const rows = await sql`
+      SELECT s.id,
+             p.name AS "participantName", p.team, p.track,
+             s.link, s.file_name AS "fileName", s.content,
+             TO_CHAR(s.submitted_at, 'YYYY-MM-DD HH24:MI') AS "submittedAt"
+      FROM assignment_submissions s
+      JOIN participants p ON p.id = s.participant_id
+      WHERE s.assignment_id = ${assignmentId}
+      ORDER BY s.submitted_at DESC
+    `;
+    return rows as Array<{
+      id: number; participantName: string; team: string; track: string;
+      link: string | null; fileName: string | null; content: string | null;
+      submittedAt: string;
+    }>;
+  } catch (error) {
+    console.error('[getAssignmentSubmissions]', error);
+    return [];
+  }
+}
+
+/** 관리자용: 과제 수정 */
+export async function updateAssignment(id: number, formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
+
+  const week        = parseInt(String(formData.get('week') ?? '0'), 10);
+  const title       = String(formData.get('title')       ?? '').trim();
+  const description = String(formData.get('description') ?? '').trim();
+  const deadline    = String(formData.get('deadline')    ?? '').trim();
+
+  if (!week || !title || !deadline) return { success: false, error: '주차, 과제명, 제출 기한은 필수입니다.' };
+
+  try {
+    await sql`
+      UPDATE assignments
+      SET week = ${week}, title = ${title}, description = ${description}, deadline = ${deadline}
+      WHERE id = ${id}
+    `;
+    revalidatePath('/education');
+    return { success: true };
+  } catch (error) {
+    console.error('[updateAssignment]', error);
+    return { success: false, error: '수정 중 오류가 발생했습니다.' };
+  }
+}
+
 export async function submitAssignmentAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return { success: false, error: '로그인이 필요합니다.' };

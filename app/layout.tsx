@@ -10,6 +10,7 @@ import WritePostSlideOver from '@/components/Modals/WritePostSlideOver';
 import AssignmentSubmitSlideOver from '@/components/Modals/AssignmentSubmitSlideOver';
 import NoticeWriteSlideOver from '@/components/Modals/NoticeWriteSlideOver';
 import AssignmentWriteSlideOver from '@/components/Modals/AssignmentWriteSlideOver';
+import AssignmentSubmissionsSlideOver from '@/components/Modals/AssignmentSubmissionsSlideOver';
 import ParticipantProfileSlideOver from '@/components/Modals/ParticipantProfileSlideOver';
 import Toast from '@/components/UI/Toast';
 import Providers from '@/components/Providers';
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AssignmentSubmitSlideOver />
             <NoticeWriteSlideOver />
             <AssignmentWriteSlideOver />
+            <AssignmentSubmissionsSlideOver />
             <ParticipantProfileSlideOver />
             <Toast />
           </ModalProvider>

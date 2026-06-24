@@ -1,33 +1,52 @@
 'use client';
 
-import { useState, useRef, useTransition } from 'react';
+import { useState, useRef, useTransition, useEffect } from 'react';
 import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
-import { submitAssignmentAction } from '@/actions/assignments';
+import { submitAssignmentAction, getMySubmission } from '@/actions/assignments';
 
 export default function AssignmentSubmitSlideOver() {
   const { openModal, closeModal, selectedAssignment } = useModal();
   const { submitAssignment, showToast } = useApp();
-  const [link, setLink] = useState('');
+
+  const [link, setLink]         = useState('');
   const [fileName, setFileName] = useState('');
-  const [content, setContent] = useState('');
-  const [error, setError] = useState('');
+  const [content, setContent]   = useState('');
+  const [error, setError]       = useState('');
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 기존 제출물 (submitted=true일 때 로드)
+  const [existing, setExisting] = useState<{
+    link: string; fileName: string; content: string; submittedAt: string;
+  } | null>(null);
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    if (openModal !== 'submitAssignment' || !selectedAssignment) return;
+    setExisting(null); setEditMode(false); setError('');
+    setLink(''); setFileName(''); setContent('');
+
+    if (selectedAssignment.submitted) {
+      startTransition(async () => {
+        const data = await getMySubmission(selectedAssignment.id);
+        setExisting(data);
+        if (data) { setLink(data.link); setFileName(data.fileName); setContent(data.content); }
+      });
+    }
+  }, [openModal, selectedAssignment?.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFileName(e.target.files[0].name);
   };
 
-  const reset = () => { setLink(''); setFileName(''); setContent(''); setError(''); };
-
+  const reset = () => { setLink(''); setFileName(''); setContent(''); setError(''); setExisting(null); setEditMode(false); };
   const hasInput = !!(link || fileName || content.trim());
 
   const handleSubmit = () => {
     if (!selectedAssignment || !hasInput) return;
     setError('');
-
     startTransition(async () => {
       const formData = new FormData();
       formData.append('assignmentId', String(selectedAssignment.id));
@@ -38,118 +57,163 @@ export default function AssignmentSubmitSlideOver() {
       const result = await submitAssignmentAction(formData);
       if (result.success) {
         submitAssignment(selectedAssignment.id, { link, fileName });
-        showToast('제출되었습니다 ✓');
-        reset();
-        closeModal();
+        showToast(existing ? '과제가 수정되었습니다 ✓' : '제출되었습니다 ✓');
+        reset(); closeModal();
       } else {
         setError(result.error ?? '제출 중 오류가 발생했습니다.');
       }
     });
   };
 
+  // 읽기 전용 모드 (제출 완료 + 수정 미시작)
+  const isReadOnly = selectedAssignment?.submitted && !editMode;
+
   return (
-    <SlideOverBase isOpen={openModal === 'submitAssignment'} onClose={() => { reset(); closeModal(); }} title="과제 제출">
+    <SlideOverBase
+      isOpen={openModal === 'submitAssignment'}
+      onClose={() => { reset(); closeModal(); }}
+      title={isReadOnly ? '제출 내역 확인' : existing ? '과제 수정' : '과제 제출'}
+    >
       {selectedAssignment && (
         <div className="flex flex-col min-h-[70vh] md:min-h-0 md:h-full">
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-28">
 
             {error && (
               <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">error</span>
-                {error}
+                <span className="material-symbols-outlined text-[18px]">error</span>{error}
               </div>
             )}
 
             {/* 과제 정보 */}
             <div className="bg-[#f3f4f5] rounded-xl p-4 space-y-2 border border-[#e1e3e4]">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold bg-[#dae2ff] text-[#001946] px-2 py-0.5 rounded">
-                  {selectedAssignment.week}주차
-                </span>
+                <span className="text-xs font-bold bg-[#dae2ff] text-[#001946] px-2 py-0.5 rounded">{selectedAssignment.week}주차</span>
                 {selectedAssignment.daysLeft !== null && (
-                  <span className="text-xs font-bold bg-[#ffdad8] text-[#410007] px-2 py-0.5 rounded">
-                    D-{selectedAssignment.daysLeft}
+                  <span className="text-xs font-bold bg-[#ffdad8] text-[#410007] px-2 py-0.5 rounded">D-{selectedAssignment.daysLeft}</span>
+                )}
+                {existing && (
+                  <span className="text-xs font-bold bg-[#8cf5e4] text-[#00201c] px-2 py-0.5 rounded">
+                    제출완료 · {existing.submittedAt}
                   </span>
                 )}
               </div>
-              <h3 className="font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-                {selectedAssignment.title}
-              </h3>
+              <h3 className="font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{selectedAssignment.title}</h3>
               <p className="text-sm text-[#434653]">{selectedAssignment.description}</p>
               <p className="text-xs text-[#737784]">마감일: {selectedAssignment.deadline}</p>
             </div>
 
-            {/* 본문 입력 */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#434653]">본문 작성</label>
-              <textarea
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                maxLength={2000}
-                rows={6}
-                placeholder="과제 내용을 직접 작성하세요..."
-                className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all resize-none text-sm"
-              />
-              <p className="text-xs text-[#737784] text-right">{content.length}/2000</p>
-            </div>
+            {/* 로딩 중 */}
+            {selectedAssignment.submitted && !existing && isPending && (
+              <div className="flex items-center justify-center py-10 text-[#737784]">
+                <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span> 불러오는 중...
+              </div>
+            )}
 
-            <div className="flex items-center gap-3 text-[#737784] text-sm">
-              <div className="flex-1 h-px bg-[#e1e3e4]" /><span>또는 첨부</span><div className="flex-1 h-px bg-[#e1e3e4]" />
-            </div>
-
-            {/* 파일 업로드 */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#434653]">파일 업로드</label>
-              <div
-                onClick={() => fileRef.current?.click()}
-                className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]"
-              >
-                <span className="material-symbols-outlined text-[#00327d] text-[40px]">upload_file</span>
-                {fileName ? (
-                  <p className="font-bold text-[#00327d] text-center break-all">{fileName}</p>
-                ) : (
-                  <div className="text-center">
-                    <p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p>
-                    <p className="text-sm text-[#434653]">PDF, DOCX, PPTX, ZIP (최대 50MB)</p>
+            {/* ──────────── 읽기 전용 모드 ──────────── */}
+            {isReadOnly && existing && (
+              <div className="space-y-4">
+                {existing.content && (
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-[#434653]">제출 본문</p>
+                    <div className="bg-[#f3f4f5] rounded-xl px-4 py-3 text-sm text-[#191c1d] whitespace-pre-line min-h-[100px]">
+                      {existing.content}
+                    </div>
                   </div>
                 )}
+                {existing.fileName && (
+                  <div className="flex items-center gap-3 bg-[#dae2ff] rounded-xl px-4 py-3">
+                    <span className="material-symbols-outlined text-[#00327d]">attach_file</span>
+                    <span className="text-sm font-semibold text-[#191c1d] truncate">{existing.fileName}</span>
+                  </div>
+                )}
+                {existing.link && (
+                  <div className="flex items-center gap-3 bg-[#dae2ff] rounded-xl px-4 py-3">
+                    <span className="material-symbols-outlined text-[#00327d]">link</span>
+                    <a href={existing.link} target="_blank" rel="noreferrer"
+                      className="text-sm font-semibold text-[#00327d] underline truncate">{existing.link}</a>
+                  </div>
+                )}
+                {!existing.content && !existing.fileName && !existing.link && (
+                  <p className="text-center text-[#737784] py-6">제출 내역이 없습니다.</p>
+                )}
               </div>
-              <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.pptx,.zip,.hwp" />
-            </div>
+            )}
 
-            <div className="flex items-center gap-3 text-[#737784] text-sm">
-              <div className="flex-1 h-px bg-[#e1e3e4]" /><span>또는</span><div className="flex-1 h-px bg-[#e1e3e4]" />
-            </div>
+            {/* ──────────── 입력 모드 ──────────── */}
+            {!isReadOnly && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-[#434653]">본문 작성</label>
+                  <textarea
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    maxLength={2000}
+                    rows={6}
+                    placeholder="과제 내용을 직접 작성하세요..."
+                    className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all resize-none text-sm"
+                  />
+                  <p className="text-xs text-[#737784] text-right">{content.length}/2000</p>
+                </div>
 
-            {/* 링크 입력 */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#434653]">링크로 제출</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784] text-[20px]">link</span>
-                <input
-                  type="url"
-                  value={link}
-                  onChange={e => setLink(e.target.value)}
-                  placeholder="https://docs.google.com/..."
-                  className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl pl-12 pr-4 py-3 focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all"
-                />
-              </div>
-            </div>
+                <div className="flex items-center gap-3 text-[#737784] text-sm">
+                  <div className="flex-1 h-px bg-[#e1e3e4]" /><span>또는 첨부</span><div className="flex-1 h-px bg-[#e1e3e4]" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-[#434653]">파일 업로드</label>
+                  <div onClick={() => fileRef.current?.click()}
+                    className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]">
+                    <span className="material-symbols-outlined text-[#00327d] text-[40px]">upload_file</span>
+                    {fileName
+                      ? <p className="font-bold text-[#00327d] text-center break-all">{fileName}</p>
+                      : <><p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p><p className="text-sm text-[#434653]">PDF, DOCX, PPTX, ZIP (최대 50MB)</p></>
+                    }
+                  </div>
+                  <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.pptx,.zip,.hwp" />
+                </div>
+
+                <div className="flex items-center gap-3 text-[#737784] text-sm">
+                  <div className="flex-1 h-px bg-[#e1e3e4]" /><span>또는</span><div className="flex-1 h-px bg-[#e1e3e4]" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-[#434653]">링크로 제출</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784] text-[20px]">link</span>
+                    <input type="url" value={link} onChange={e => setLink(e.target.value)}
+                      placeholder="https://docs.google.com/..."
+                      className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl pl-12 pr-4 py-3 focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* 제출 버튼 */}
+          {/* 하단 버튼 */}
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-[#e1e3e4]">
-            <button
-              onClick={handleSubmit}
-              disabled={isPending || !hasInput}
-              className="w-full bg-[#0047ab] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50"
-            >
-              {isPending ? (
-                <><span className="material-symbols-outlined animate-spin">progress_activity</span> 제출 중...</>
-              ) : (
-                <><span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span> 제출하기</>
-              )}
-            </button>
+            {isReadOnly ? (
+              <button onClick={() => setEditMode(true)}
+                className="w-full bg-[#00327d] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                <span className="material-symbols-outlined">edit</span> 수정하기
+              </button>
+            ) : (
+              <div className="flex gap-3">
+                {existing && (
+                  <button onClick={() => setEditMode(false)}
+                    className="h-14 px-5 bg-[#e7e8e9] text-[#434653] rounded-xl font-bold active:scale-95 transition-all">
+                    취소
+                  </button>
+                )}
+                <button onClick={handleSubmit} disabled={isPending || !hasInput}
+                  className="flex-1 bg-[#0047ab] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50">
+                  {isPending
+                    ? <><span className="material-symbols-outlined animate-spin">progress_activity</span> 처리 중...</>
+                    : <><span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                        {existing ? '수정 완료' : '제출하기'}</>
+                  }
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
