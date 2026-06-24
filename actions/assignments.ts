@@ -66,8 +66,9 @@ export async function getMySubmission(assignmentId: number) {
   if (!session?.user) return null;
   try {
     await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content TEXT`;
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS file_data TEXT`;
     const rows = await sql`
-      SELECT link, file_name AS "fileName", content,
+      SELECT link, file_name AS "fileName", file_data AS "fileData", content,
              TO_CHAR(submitted_at, 'YYYY-MM-DD HH24:MI') AS "submittedAt"
       FROM assignment_submissions
       WHERE assignment_id = ${assignmentId} AND participant_id = ${session.user.id}
@@ -78,6 +79,7 @@ export async function getMySubmission(assignmentId: number) {
     return {
       link:        r.link        ? String(r.link)        : '',
       fileName:    r.fileName    ? String(r.fileName)    : '',
+      fileData:    r.fileData    ? String(r.fileData)    : '',
       content:     r.content     ? String(r.content)     : '',
       submittedAt: r.submittedAt ? String(r.submittedAt) : '',
     };
@@ -92,11 +94,12 @@ export async function getAssignmentSubmissions(assignmentId: number) {
   const session = await auth();
   if (session?.user?.role !== 'admin') return [];
   try {
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content TEXT`;
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content   TEXT`;
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS file_data TEXT`;
     const rows = await sql`
       SELECT s.id,
              p.name AS "participantName", p.team, p.track,
-             s.link, s.file_name AS "fileName", s.content,
+             s.link, s.file_name AS "fileName", s.file_data AS "fileData", s.content,
              TO_CHAR(s.submitted_at, 'YYYY-MM-DD HH24:MI') AS "submittedAt"
       FROM assignment_submissions s
       JOIN participants p ON p.id = s.participant_id
@@ -105,7 +108,7 @@ export async function getAssignmentSubmissions(assignmentId: number) {
     `;
     return rows as Array<{
       id: number; participantName: string; team: string; track: string;
-      link: string | null; fileName: string | null; content: string | null;
+      link: string | null; fileName: string | null; fileData: string | null; content: string | null;
       submittedAt: string;
     }>;
   } catch (error) {
@@ -171,17 +174,19 @@ export async function submitAssignmentAction(formData: FormData) {
   if (!link && !fileName && !content) return { success: false, error: '파일, 링크, 또는 본문 내용을 입력해주세요.' };
 
   try {
-    // content 컬럼이 없으면 추가 (최초 1회)
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content TEXT`;
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content   TEXT`;
+    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS file_data TEXT`;
+    const fileData = String(formData.get('fileData') ?? '').trim() || null;
     await sql`
-      INSERT INTO assignment_submissions (assignment_id, participant_id, link, file_name, content, status, submitted_at)
-      VALUES (${assignmentId}, ${session.user.id}, ${link || null}, ${fileName || null}, ${content || null}, 'pending', NOW())
+      INSERT INTO assignment_submissions (assignment_id, participant_id, link, file_name, file_data, content, status, submitted_at)
+      VALUES (${assignmentId}, ${session.user.id}, ${link || null}, ${fileName || null}, ${fileData}, ${content || null}, 'pending', NOW())
       ON CONFLICT (assignment_id, participant_id)
       DO UPDATE SET
-        link = EXCLUDED.link,
-        file_name = EXCLUDED.file_name,
-        content = EXCLUDED.content,
-        status = 'pending',
+        link       = EXCLUDED.link,
+        file_name  = EXCLUDED.file_name,
+        file_data  = EXCLUDED.file_data,
+        content    = EXCLUDED.content,
+        status     = 'pending',
         submitted_at = NOW()
     `;
     revalidatePath('/education');

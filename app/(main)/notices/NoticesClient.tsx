@@ -17,7 +17,7 @@ interface Props {
   searchQuery: string;
 }
 
-const FILTERS = ['전체', '필독', '공지', '프로그램', '취업정보', '기타'];
+const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 
 export default function NoticesClient({ initialNotices, searchQuery }: Props) {
   const [activeFilter, setActiveFilter] = useState('전체');
@@ -55,7 +55,7 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
 
   const filtered = activeFilter === '전체'
     ? initialNotices
-    : initialNotices.filter(n => n.category === activeFilter);
+    : initialNotices.filter(n => n.category.split(',').map(c => c.trim()).includes(activeFilter));
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
@@ -170,7 +170,9 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {n.isPinned && <span className="text-[#b7102a] font-bold text-xs px-2 py-0.5 bg-[#ffdad8] rounded-full">[필독]</span>}
-                  <span className="text-xs px-2 py-0.5 bg-[#e7e8e9] text-[#434653] rounded-full">{n.category}</span>
+                  {n.category.split(',').map(c => c.trim()).filter(Boolean).map(cat => (
+                    <span key={cat} className="text-xs px-2 py-0.5 bg-[#e7e8e9] text-[#434653] rounded-full">{cat}</span>
+                  ))}
                   <span className="font-semibold text-[#191c1d] truncate">{n.title}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[#434653] text-xs">

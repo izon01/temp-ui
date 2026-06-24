@@ -12,6 +12,7 @@ export default function AssignmentSubmitSlideOver() {
 
   const [link, setLink]         = useState('');
   const [fileName, setFileName] = useState('');
+  const [fileData, setFileData] = useState('');   // base64
   const [content, setContent]   = useState('');
   const [error, setError]       = useState('');
   const [isPending, startTransition] = useTransition();
@@ -19,29 +20,35 @@ export default function AssignmentSubmitSlideOver() {
 
   // 기존 제출물 (submitted=true일 때 로드)
   const [existing, setExisting] = useState<{
-    link: string; fileName: string; content: string; submittedAt: string;
+    link: string; fileName: string; fileData: string; content: string; submittedAt: string;
   } | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (openModal !== 'submitAssignment' || !selectedAssignment) return;
     setExisting(null); setEditMode(false); setError('');
-    setLink(''); setFileName(''); setContent('');
+    setLink(''); setFileName(''); setFileData(''); setContent('');
 
     if (selectedAssignment.submitted) {
       startTransition(async () => {
         const data = await getMySubmission(selectedAssignment.id);
         setExisting(data);
-        if (data) { setLink(data.link); setFileName(data.fileName); setContent(data.content); }
+        if (data) { setLink(data.link); setFileName(data.fileName); setFileData(data.fileData ?? ''); setContent(data.content); }
       });
     }
   }, [openModal, selectedAssignment?.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) setFileName(e.target.files[0].name);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setError('파일 크기는 5MB 이하만 가능합니다.'); return; }
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setFileData(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
-  const reset = () => { setLink(''); setFileName(''); setContent(''); setError(''); setExisting(null); setEditMode(false); };
+  const reset = () => { setLink(''); setFileName(''); setFileData(''); setContent(''); setError(''); setExisting(null); setEditMode(false); };
   const hasInput = !!(link || fileName || content.trim());
 
   const handleSubmit = () => {
@@ -52,6 +59,7 @@ export default function AssignmentSubmitSlideOver() {
       formData.append('assignmentId', String(selectedAssignment.id));
       formData.append('link', link);
       formData.append('fileName', fileName);
+      formData.append('fileData', fileData);
       formData.append('content', content);
 
       const result = await submitAssignmentAction(formData);
@@ -121,10 +129,19 @@ export default function AssignmentSubmitSlideOver() {
                   </div>
                 )}
                 {existing.fileName && (
-                  <div className="flex items-center gap-3 bg-[#dae2ff] rounded-xl px-4 py-3">
-                    <span className="material-symbols-outlined text-[#00327d]">attach_file</span>
-                    <span className="text-sm font-semibold text-[#191c1d] truncate">{existing.fileName}</span>
-                  </div>
+                  existing.fileData ? (
+                    <a href={existing.fileData} download={existing.fileName}
+                      className="flex items-center gap-3 bg-[#dae2ff] rounded-xl px-4 py-3 hover:bg-[#b8c5f2] transition-colors">
+                      <span className="material-symbols-outlined text-[#00327d]">download</span>
+                      <span className="text-sm font-semibold text-[#00327d] truncate">{existing.fileName}</span>
+                      <span className="text-xs text-[#434653] ml-auto">다운로드</span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-3 bg-[#dae2ff] rounded-xl px-4 py-3">
+                      <span className="material-symbols-outlined text-[#00327d]">attach_file</span>
+                      <span className="text-sm font-semibold text-[#191c1d] truncate">{existing.fileName}</span>
+                    </div>
+                  )
                 )}
                 {existing.link && (
                   <div className="flex items-center gap-3 bg-[#dae2ff] rounded-xl px-4 py-3">

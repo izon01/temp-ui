@@ -6,10 +6,10 @@ import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createNotice } from '@/actions/notices';
 
-const CATEGORIES = ['공지', '필독', '프로그램', '취업정보', '기타'];
+const CATEGORIES = ['필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const iconMap: Record<string, string> = {
-  '공지': 'campaign', '필독': 'notification_important', '프로그램': 'school',
-  '취업정보': 'work', '기타': 'info',
+  '필독': 'notification_important', '공지사항': 'campaign',
+  '취업정보': 'work', '취업활동양식': 'description', '기타': 'info',
 };
 const MAX = 1000;
 
@@ -18,15 +18,21 @@ export default function NoticeWriteSlideOver() {
   const { showToast } = useApp();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('공지');
+  const [categories, setCategories] = useState<string[]>(['공지사항']);
   const [isPinned, setIsPinned] = useState(false);
   const [imageBase64, setImageBase64] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const imageRef = useRef<HTMLInputElement>(null);
 
+  const toggleCategory = (cat: string) => {
+    setCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
   const reset = () => {
-    setTitle(''); setContent(''); setCategory('공지');
+    setTitle(''); setContent(''); setCategories(['공지사항']);
     setIsPinned(false); setImageBase64(''); setError('');
   };
 
@@ -44,9 +50,10 @@ export default function NoticeWriteSlideOver() {
     setError('');
     startTransition(async () => {
       const formData = new FormData();
+      if (categories.length === 0) { setError('카테고리를 하나 이상 선택해주세요.'); return; }
       formData.append('title', title);
       formData.append('content', content);
-      formData.append('category', category);
+      formData.append('category', categories.join(','));
       formData.append('isPinned', String(isPinned));
       if (imageBase64) formData.append('imageUrl', imageBase64);
 
@@ -73,19 +80,32 @@ export default function NoticeWriteSlideOver() {
             </div>
           )}
 
-          {/* 카테고리 */}
+          {/* 카테고리 (다중 선택) */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#434653]">카테고리</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-[#434653]">카테고리 <span className="text-[#737784] font-normal">(복수 선택 가능)</span></label>
+              {categories.length > 0 && (
+                <span className="text-xs text-[#00327d] font-bold">{categories.length}개 선택됨</span>
+              )}
+            </div>
             <div className="flex gap-2 flex-wrap">
-              {CATEGORIES.map(cat => (
-                <button key={cat} type="button" onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-all ${
-                    category === cat ? 'bg-[#00327d] text-white border-[#00327d]' : 'bg-[#f3f4f5] border-[#c3c6d5] text-[#434653] hover:border-[#00327d]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+              {CATEGORIES.map(cat => {
+                const checked = categories.includes(cat);
+                return (
+                  <button key={cat} type="button" onClick={() => toggleCategory(cat)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                      checked
+                        ? 'bg-[#00327d] text-white border-[#00327d] shadow-sm'
+                        : 'bg-[#f3f4f5] border-[#c3c6d5] text-[#434653] hover:border-[#00327d] hover:text-[#00327d]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: checked ? "'FILL' 1" : "'FILL' 0" }}>
+                      {checked ? 'check_circle' : 'radio_button_unchecked'}
+                    </span>
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

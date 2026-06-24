@@ -6,8 +6,8 @@ import { sql } from '@/lib/db';
 
 const MAX_CONTENT = 1000;
 const iconMap: Record<string, string> = {
-  '공지': 'campaign', '필독': 'notification_important', '프로그램': 'school',
-  '취업정보': 'work', '기타': 'info',
+  '필독': 'notification_important', '공지사항': 'campaign',
+  '취업정보': 'work', '취업활동양식': 'description', '기타': 'info',
 };
 
 export async function createNotice(formData: FormData) {
@@ -16,10 +16,11 @@ export async function createNotice(formData: FormData) {
 
   const title    = String(formData.get('title')    ?? '').trim();
   const content  = String(formData.get('content')  ?? '').trim();
-  const category = String(formData.get('category') ?? '공지').trim();
+  const category = String(formData.get('category') ?? '공지사항').trim(); // 쉼표 구분 다중값
   const isPinned = formData.get('isPinned') === 'true';
   const imageUrl = formData.get('imageUrl') ? String(formData.get('imageUrl')) : null;
-  const icon     = iconMap[category] ?? 'campaign';
+  const firstCat = category.split(',')[0].trim();
+  const icon     = iconMap[firstCat] ?? 'campaign';
 
   if (!title || !content) return { success: false, error: '제목과 내용을 입력해주세요.' };
   if (content.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };

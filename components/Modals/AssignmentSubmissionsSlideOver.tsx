@@ -7,7 +7,7 @@ import { getAssignmentSubmissions } from '@/actions/assignments';
 
 type Submission = {
   id: number; participantName: string; team: string; track: string;
-  link: string | null; fileName: string | null; content: string | null;
+  link: string | null; fileName: string | null; fileData: string | null; content: string | null;
   submittedAt: string;
 };
 
@@ -97,10 +97,19 @@ export default function AssignmentSubmissionsSlideOver() {
                       </div>
                     )}
                     {s.fileName && (
-                      <div className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2">
-                        <span className="material-symbols-outlined text-[#00327d] text-[18px]">attach_file</span>
-                        <span className="text-sm text-[#191c1d] font-semibold truncate">{s.fileName}</span>
-                      </div>
+                      s.fileData ? (
+                        <a href={s.fileData} download={s.fileName}
+                          className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2 hover:bg-[#b8c5f2] transition-colors">
+                          <span className="material-symbols-outlined text-[#00327d] text-[18px]">download</span>
+                          <span className="text-sm text-[#00327d] font-semibold truncate">{s.fileName}</span>
+                          <span className="text-xs text-[#434653] ml-auto flex-shrink-0">다운로드</span>
+                        </a>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2">
+                          <span className="material-symbols-outlined text-[#00327d] text-[18px]">attach_file</span>
+                          <span className="text-sm text-[#191c1d] font-semibold truncate">{s.fileName}</span>
+                        </div>
+                      )
                     )}
                     {s.link && (
                       <div className="flex items-center gap-2 bg-[#dae2ff] rounded-lg px-3 py-2">
