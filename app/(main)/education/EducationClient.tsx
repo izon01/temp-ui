@@ -16,9 +16,10 @@ interface Props {
   initialAssignments: Assignment[];
   userName: string;
   isAdmin: boolean;
+  submissionRate: number;
 }
 
-export default function EducationClient({ initialAssignments, userName, isAdmin }: Props) {
+export default function EducationClient({ initialAssignments, userName, isAdmin, submissionRate }: Props) {
   const { openSubmitAssignment, openWriteAssignment, openEditAssignment, openAssignmentSubmissions } = useModal();
   const { showToast } = useApp();
   const [attendanceChecked, setAttendanceChecked] = useState(false);
@@ -145,9 +146,9 @@ export default function EducationClient({ initialAssignments, userName, isAdmin 
       {/* Stats mini */}
       <section className="grid grid-cols-2 gap-4">
         <div className="bg-white/80 backdrop-blur-md border border-white/30 shadow-sm p-4 rounded-xl flex flex-col gap-1">
-          <span className="material-symbols-outlined text-[#00327d] mb-1">school</span>
-          <span className="text-sm text-[#434653]">전체 수료율</span>
-          <span className="text-2xl font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>78%</span>
+          <span className="material-symbols-outlined text-[#00327d] mb-1">assignment_turned_in</span>
+          <span className="text-sm text-[#434653]">전체 제출률</span>
+          <span className="text-2xl font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{submissionRate}%</span>
         </div>
         <div className="bg-white/80 backdrop-blur-md border border-white/30 shadow-sm p-4 rounded-xl flex flex-col gap-1">
           <span className="material-symbols-outlined text-[#003e37] mb-1">assignment_turned_in</span>

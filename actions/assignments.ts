@@ -140,6 +140,25 @@ export async function updateAssignment(id: number, formData: FormData) {
   }
 }
 
+/** 전체 과제 제출률 (전체 제출 수 / 과제수 × 참여자수 × 100) */
+export async function getAssignmentSubmissionRate(): Promise<number> {
+  try {
+    const rows = await sql`
+      SELECT
+        (SELECT COUNT(*) FROM assignment_submissions)::float AS total_submissions,
+        (SELECT COUNT(*) FROM assignments)::float            AS total_assignments,
+        (SELECT COUNT(*) FROM participants WHERE role = 'participant')::float AS total_participants
+    `;
+    const { total_submissions, total_assignments, total_participants } = rows[0];
+    const denom = Number(total_assignments) * Number(total_participants);
+    if (denom === 0) return 0;
+    return Math.min(100, Math.round((Number(total_submissions) / denom) * 100));
+  } catch (error) {
+    console.error('[getAssignmentSubmissionRate]', error);
+    return 0;
+  }
+}
+
 export async function submitAssignmentAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return { success: false, error: '로그인이 필요합니다.' };
