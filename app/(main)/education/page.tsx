@@ -1,16 +1,16 @@
 import { auth } from '@/auth';
-import { getAssignments, getAssignmentSubmissionRate } from '@/actions/assignments';
+import { getAssignments, getParticipantActivityStats } from '@/actions/assignments';
 import EducationClient from './EducationClient';
 
 export default async function EducationPage() {
   const session = await auth();
-  const userId   = session?.user?.id;
+  const userId   = session?.user?.id ?? '';
   const userName = session?.user?.name ?? '학생';
   const isAdmin  = session?.user?.role === 'admin';
 
-  const [assignments, submissionRate] = await Promise.all([
+  const [assignments, stats] = await Promise.all([
     getAssignments(userId),
-    getAssignmentSubmissionRate(),
+    getParticipantActivityStats(userId),
   ]);
 
   return (
@@ -18,7 +18,7 @@ export default async function EducationPage() {
       initialAssignments={assignments}
       userName={userName}
       isAdmin={isAdmin}
-      submissionRate={submissionRate}
+      stats={stats}
     />
   );
 }

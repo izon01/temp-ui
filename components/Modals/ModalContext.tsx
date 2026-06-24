@@ -9,7 +9,7 @@ export interface SelectedPost {
 }
 
 export interface SelectedAssignment {
-  id: number; week: number; title: string; description: string;
+  id: number; week: number; category: string; title: string; description: string;
   deadline: string; daysLeft: number | null; submitted: boolean;
 }
 

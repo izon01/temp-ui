@@ -7,9 +7,12 @@ import { sql } from '@/lib/db';
 const MAX_CONTENT = 1000;
 
 export async function getAssignments(participantId?: string) {
+  try {
+    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
+  } catch {}
   const rows = await sql`
     SELECT
-      a.id, a.week, a.title, a.description,
+      a.id, a.week, a.category, a.title, a.description,
       TO_CHAR(a.deadline, 'YYYY-MM-DD') AS deadline,
       (a.deadline - CURRENT_DATE) AS days_left,
       CASE WHEN s.id IS NOT NULL THEN true ELSE false END AS submitted
@@ -19,7 +22,7 @@ export async function getAssignments(participantId?: string) {
     ORDER BY a.week DESC, a.created_at DESC
   `;
   return rows as Array<{
-    id: number; week: number; title: string; description: string;
+    id: number; week: number; category: string; title: string; description: string;
     deadline: string; days_left: number | null; submitted: boolean;
   }>;
 }
@@ -29,15 +32,17 @@ export async function createAssignment(formData: FormData) {
   if (session?.user?.role !== 'admin') return { success: false, error: '관리자만 과제를 등록할 수 있습니다.' };
 
   const week        = parseInt(String(formData.get('week') ?? '0'), 10);
+  const category    = String(formData.get('category')    ?? '과제').trim();
   const title       = String(formData.get('title')       ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
   const deadline    = String(formData.get('deadline')    ?? '').trim();
 
-  if (!week || !title || !deadline) return { success: false, error: '주차, 과제명, 제출 기한은 필수입니다.' };
+  if (!week || !title || !deadline) return { success: false, error: '회차, 과제명, 제출 기한은 필수입니다.' };
   if (description.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
 
   try {
-    await sql`INSERT INTO assignments (week, title, description, deadline, created_by) VALUES (${week}, ${title}, ${description}, ${deadline}, ${session.user.id})`;
+    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
+    await sql`INSERT INTO assignments (week, category, title, description, deadline, created_by) VALUES (${week}, ${category}, ${title}, ${description}, ${deadline}, ${session.user.id})`;
     revalidatePath('/education');
     return { success: true };
   } catch (error) {
@@ -123,16 +128,18 @@ export async function updateAssignment(id: number, formData: FormData) {
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
 
   const week        = parseInt(String(formData.get('week') ?? '0'), 10);
+  const category    = String(formData.get('category')    ?? '과제').trim();
   const title       = String(formData.get('title')       ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
   const deadline    = String(formData.get('deadline')    ?? '').trim();
 
-  if (!week || !title || !deadline) return { success: false, error: '주차, 과제명, 제출 기한은 필수입니다.' };
+  if (!week || !title || !deadline) return { success: false, error: '회차, 과제명, 제출 기한은 필수입니다.' };
 
   try {
+    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
     await sql`
       UPDATE assignments
-      SET week = ${week}, title = ${title}, description = ${description}, deadline = ${deadline}
+      SET week = ${week}, category = ${category}, title = ${title}, description = ${description}, deadline = ${deadline}
       WHERE id = ${id}
     `;
     revalidatePath('/education');
@@ -140,6 +147,53 @@ export async function updateAssignment(id: number, formData: FormData) {
   } catch (error) {
     console.error('[updateAssignment]', error);
     return { success: false, error: '수정 중 오류가 발생했습니다.' };
+  }
+}
+
+/** 참여자 활동 통계 + 레벨 계산 */
+export async function getParticipantActivityStats(participantId: string) {
+  try {
+    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
+
+    const rows = await sql`
+      SELECT
+        COALESCE(a.category, '과제') AS category,
+        COUNT(a.id)::int             AS total,
+        COUNT(s.id)::int             AS submitted
+      FROM assignments a
+      LEFT JOIN assignment_submissions s
+        ON s.assignment_id = a.id AND s.participant_id = ${participantId}
+      GROUP BY COALESCE(a.category, '과제')
+    `;
+
+    const byCategory: Record<string, { total: number; submitted: number }> = {};
+    let totalAll = 0, submittedAll = 0;
+    for (const r of rows) {
+      const cat = String(r.category);
+      byCategory[cat] = { total: Number(r.total), submitted: Number(r.submitted) };
+      totalAll    += Number(r.total);
+      submittedAll += Number(r.submitted);
+    }
+
+    const camp      = byCategory['캠프']   ?? { total: 0, submitted: 0 };
+    const task      = byCategory['과제']   ?? { total: 0, submitted: 0 };
+    const mentoring = byCategory['멘토링'] ?? { total: 0, submitted: 0 };
+
+    const overallRate = totalAll === 0 ? 0 : Math.min(100, Math.round((submittedAll / totalAll) * 100));
+    const level         = Math.min(10, 1 + Math.floor(submittedAll / 5));
+    const levelProgress = submittedAll % 5;       // 현재 레벨 내 진행 수 (0~4)
+    const nextLevelNeeds = level < 10 ? 5 - levelProgress : 0;
+
+    return { overallRate, camp, task, mentoring, level, levelProgress, nextLevelNeeds, totalAll, submittedAll };
+  } catch (error) {
+    console.error('[getParticipantActivityStats]', error);
+    return {
+      overallRate: 0,
+      camp:      { total: 0, submitted: 0 },
+      task:      { total: 0, submitted: 0 },
+      mentoring: { total: 0, submitted: 0 },
+      level: 1, levelProgress: 0, nextLevelNeeds: 5, totalAll: 0, submittedAll: 0,
+    };
   }
 }
 

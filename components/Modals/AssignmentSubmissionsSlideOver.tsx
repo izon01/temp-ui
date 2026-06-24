@@ -37,7 +37,7 @@ export default function AssignmentSubmissionsSlideOver() {
           {/* 과제 요약 */}
           <div className="px-6 pt-4 pb-3 border-b border-[#e1e3e4] bg-[#f3f4f5]">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold bg-[#dae2ff] text-[#001946] px-2 py-0.5 rounded">{selectedAssignment.week}주차</span>
+              <span className="text-xs font-bold bg-[#dae2ff] text-[#001946] px-2 py-0.5 rounded">{selectedAssignment.week}회차</span>
               <span className="text-xs font-bold bg-[#8cf5e4] text-[#00201c] px-2 py-0.5 rounded">{submissions.length}명 제출</span>
             </div>
             <p className="font-bold text-[#191c1d]">{selectedAssignment.title}</p>
