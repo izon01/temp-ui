@@ -55,9 +55,19 @@ export default function ProfileSlideOver() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setProfileImage(reader.result as string);
-    reader.readAsDataURL(file);
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX = 256;
+      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      setProfileImage(canvas.toDataURL('image/jpeg', 0.75));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
   };
 
   const handleSave = () => {
