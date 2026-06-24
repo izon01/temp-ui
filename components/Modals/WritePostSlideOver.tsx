@@ -20,11 +20,12 @@ export default function WritePostSlideOver() {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [imageBase64, setImageBase64] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setTitle(''); setContent(''); setCategory('자유게시판');
-    setError(''); setAttachedFile(null);
+    setError(''); setAttachedFile(null); setImageBase64('');
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -37,6 +38,7 @@ export default function WritePostSlideOver() {
       formData.append('category', category);
       formData.append('title', title);
       formData.append('content', content);
+      if (imageBase64) formData.append('imageUrl', imageBase64);
       const result = await createCommunityPost(formData);
       if (result.success) { showToast('게시글이 등록되었습니다 ✓'); reset(); closeModal(); }
       else setError(result.error ?? '오류가 발생했습니다.');
@@ -101,7 +103,17 @@ export default function WritePostSlideOver() {
               type="file"
               accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
               className="hidden"
-              onChange={e => setAttachedFile(e.target.files?.[0] ?? null)}
+              onChange={e => {
+                const file = e.target.files?.[0] ?? null;
+                setAttachedFile(file);
+                if (file && file.type.startsWith('image/')) {
+                  const reader = new FileReader();
+                  reader.onload = () => setImageBase64(reader.result as string);
+                  reader.readAsDataURL(file);
+                } else {
+                  setImageBase64('');
+                }
+              }}
             />
             {attachedFile ? (
               <div className="flex items-center gap-3 bg-[#dae2ff] border border-[#00327d]/20 rounded-xl px-4 py-3">

@@ -5,6 +5,7 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 export interface SelectedPost {
   id: number; category: string; title: string; content: string;
   author: string; timeAgo: string; comments: number; hasImage: boolean;
+  imageUrl?: string | null;
 }
 
 export interface SelectedAssignment {

@@ -123,9 +123,11 @@ export default function PostDetailSlideOver() {
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
             {selectedPost.hasImage && (
-              <div className="w-full h-48 bg-[#e1e3e4] rounded-xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#737784] text-[60px]">image</span>
-              </div>
+              selectedPost.imageUrl
+                ? <img src={selectedPost.imageUrl} alt="첨부 이미지" className="w-full rounded-xl object-cover max-h-64" />
+                : <div className="w-full h-48 bg-[#e1e3e4] rounded-xl flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[#737784] text-[60px]">image</span>
+                  </div>
             )}
             <p className="text-[#434653] leading-relaxed whitespace-pre-line">{selectedPost.content}</p>
 

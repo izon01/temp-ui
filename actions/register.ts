@@ -9,6 +9,7 @@ export async function registerUser(formData: FormData) {
   const password       = String(formData.get('password')       ?? '').trim();
   const passwordConfirm = String(formData.get('passwordConfirm') ?? '').trim();
   const name           = String(formData.get('name')           ?? '').trim();
+  const phone          = String(formData.get('phone')          ?? '').trim();
 
   if (!loginId || !password || !name) {
     return { success: false, error: '모든 항목을 입력해 주세요.' };
@@ -51,12 +52,15 @@ export async function registerUser(formData: FormData) {
       return { success: false, error: '이미 사용 중인 아이디입니다.' };
     }
 
+    // phone 컬럼 자동 추가
+    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS phone TEXT`;
+
     const passwordHash = await bcrypt.hash(password, 10);
     const email = `${loginId}@gyeongbuk.kr`; // 내부 식별용 이메일
 
     await sql`
-      INSERT INTO participants (login_id, email, password_hash, name, role)
-      VALUES (${loginId}, ${email}, ${passwordHash}, ${name}, 'participant')
+      INSERT INTO participants (login_id, email, password_hash, name, role, phone)
+      VALUES (${loginId}, ${email}, ${passwordHash}, ${name}, 'participant', ${phone || null})
     `;
   } catch (err: unknown) {
     console.error('[registerUser]', err);

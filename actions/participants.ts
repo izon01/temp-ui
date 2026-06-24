@@ -1,6 +1,7 @@
 'use server';
 
 import { sql } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 export async function getAverageAttendance(): Promise<number> {
   try {
@@ -48,8 +49,12 @@ export async function getParticipantCount(): Promise<number> {
 
 export async function getParticipantProfile(id: number) {
   try {
+    // phone, profile_image 컬럼 자동 추가
+    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS phone TEXT`;
+    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS profile_image TEXT`;
+
     const rows = await sql`
-      SELECT id, name, email, team, track, login_id
+      SELECT id, name, email, team, track, login_id, phone, profile_image AS "profileImage"
       FROM participants WHERE id = ${id} LIMIT 1
     `;
     if (!rows[0]) return null;
@@ -58,6 +63,7 @@ export async function getParticipantProfile(id: number) {
       id: Number(r.id), name: String(r.name ?? ''),
       email: String(r.email ?? ''), team: String(r.team ?? ''),
       track: String(r.track ?? ''), loginId: String(r.login_id ?? ''),
+      phone: String(r.phone ?? ''), profileImage: r.profileImage ? String(r.profileImage) : '',
     };
   } catch (error) {
     console.error('[getParticipantProfile]', error);
@@ -65,16 +71,49 @@ export async function getParticipantProfile(id: number) {
   }
 }
 
-export async function updateParticipantProfile(id: number, data: { team: string; track: string }) {
+export async function updateParticipantProfile(
+  id: number,
+  data: { team: string; track: string; phone?: string; profileImage?: string }
+) {
   try {
+    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS phone TEXT`;
+    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS profile_image TEXT`;
     await sql`
-      UPDATE participants SET team = ${data.team}, track = ${data.track}
+      UPDATE participants
+      SET team          = ${data.team},
+          track         = ${data.track},
+          phone         = ${data.phone ?? null},
+          profile_image = ${data.profileImage ?? null}
       WHERE id = ${id}
     `;
     return { success: true };
   } catch (error) {
     console.error('[updateParticipantProfile]', error);
     return { success: false, error: '저장 중 오류가 발생했습니다.' };
+  }
+}
+
+export async function changePassword(
+  id: number,
+  currentPassword: string,
+  newPassword: string
+) {
+  if (newPassword.length < 6) {
+    return { success: false, error: '새 비밀번호는 6자 이상이어야 합니다.' };
+  }
+  try {
+    const rows = await sql`SELECT password_hash FROM participants WHERE id = ${id} LIMIT 1`;
+    if (!rows[0]) return { success: false, error: '사용자를 찾을 수 없습니다.' };
+
+    const valid = await bcrypt.compare(currentPassword, String(rows[0].password_hash));
+    if (!valid) return { success: false, error: '기존 비밀번호가 올바르지 않습니다.' };
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await sql`UPDATE participants SET password_hash = ${newHash} WHERE id = ${id}`;
+    return { success: true };
+  } catch (error) {
+    console.error('[changePassword]', error);
+    return { success: false, error: '비밀번호 변경 중 오류가 발생했습니다.' };
   }
 }
 

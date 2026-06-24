@@ -9,8 +9,8 @@ import { useApp } from '@/contexts/AppContext';
 
 interface Post {
   id: number; category: string; title: string; content: string;
-  authorName: string; hasImage: boolean; comments: number;
-  date: string;
+  authorName: string; hasImage: boolean; imageUrl?: string | null;
+  comments: number; date: string;
 }
 
 interface Props {
@@ -158,6 +158,7 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
                   timeAgo: timeAgo(post.date),
                   comments: post.comments,
                   hasImage: post.hasImage,
+                  imageUrl: post.imageUrl,
                 })}
                 className="bg-white rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 border border-transparent cursor-pointer flex flex-col overflow-hidden relative"
               >
@@ -172,8 +173,11 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
                   </button>
                 )}
                 {post.hasImage && (
-                  <div className="h-40 bg-[#e1e3e4] flex items-center justify-center overflow-hidden">
-                    <span className="material-symbols-outlined text-[#737784] text-[60px]">image</span>
+                  <div className="h-40 bg-[#e1e3e4] overflow-hidden">
+                    {post.imageUrl
+                      ? <img src={post.imageUrl} alt="첨부 이미지" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-[#737784] text-[60px]">image</span></div>
+                    }
                   </div>
                 )}
                 <div className="p-6 flex flex-col justify-between flex-1">

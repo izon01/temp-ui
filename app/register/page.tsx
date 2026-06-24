@@ -84,6 +84,20 @@ export default function RegisterPage() {
               />
             </div>
 
+            {/* 연락처 */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[#434653] flex items-center gap-1">
+                <span className="material-symbols-outlined text-[18px]">call</span>
+                연락처 <span className="text-[#737784] font-normal">(선택)</span>
+              </label>
+              <input
+                name="phone"
+                type="tel"
+                placeholder="010-0000-0000"
+                className="w-full h-14 px-4 bg-[#f8f9fa] border border-[#c3c6d5] rounded-lg text-[#191c1d] placeholder:text-[#737784] focus:outline-none focus:border-[#0047ab] focus:ring-2 focus:ring-[#0047ab]/20 transition-all"
+              />
+            </div>
+
             {/* 비밀번호 */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-[#434653] flex items-center gap-1">

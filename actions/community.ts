@@ -7,24 +7,32 @@ import { sql } from '@/lib/db';
 const MAX_CONTENT = 1000;
 
 export async function getCommunityPosts(q?: string) {
+  // image_url 컬럼 자동 추가 (없을 경우)
+  try {
+    await sql`ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`;
+  } catch { /* ignore */ }
+
   const query = q?.trim() ?? '';
   const rows = query
     ? await sql`
         SELECT id, category, title, content, author_name AS "authorName",
-               has_image AS "hasImage", comments, TO_CHAR(created_at, 'YYYY-MM-DD') AS date
+               has_image AS "hasImage", image_url AS "imageUrl", comments,
+               TO_CHAR(created_at, 'YYYY-MM-DD') AS date
         FROM community_posts
         WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
         ORDER BY created_at DESC
       `
     : await sql`
         SELECT id, category, title, content, author_name AS "authorName",
-               has_image AS "hasImage", comments, TO_CHAR(created_at, 'YYYY-MM-DD') AS date
+               has_image AS "hasImage", image_url AS "imageUrl", comments,
+               TO_CHAR(created_at, 'YYYY-MM-DD') AS date
         FROM community_posts
         ORDER BY created_at DESC
       `;
   return rows as Array<{
     id: number; category: string; title: string; content: string;
-    authorName: string; hasImage: boolean; comments: number; date: string;
+    authorName: string; hasImage: boolean; imageUrl: string | null;
+    comments: number; date: string;
   }>;
 }
 
@@ -35,14 +43,16 @@ export async function createCommunityPost(formData: FormData) {
   const category = String(formData.get('category') ?? '자유게시판').trim();
   const title    = String(formData.get('title')    ?? '').trim();
   const content  = String(formData.get('content')  ?? '').trim();
+  const imageUrl = formData.get('imageUrl') ? String(formData.get('imageUrl')) : null;
 
   if (!title || !content) return { success: false, error: '제목과 내용을 입력해주세요.' };
   if (content.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
 
   try {
+    await sql`ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`;
     await sql`
-      INSERT INTO community_posts (category, title, content, author_id, author_name)
-      VALUES (${category}, ${title}, ${content}, ${session.user.id}, ${session.user.name ?? '익명'})
+      INSERT INTO community_posts (category, title, content, author_id, author_name, has_image, image_url)
+      VALUES (${category}, ${title}, ${content}, ${session.user.id}, ${session.user.name ?? '익명'}, ${!!imageUrl}, ${imageUrl})
     `;
     revalidatePath('/community');
     return { success: true };
@@ -67,7 +77,6 @@ export async function deleteCommunityPost(id: number) {
 
 export async function getPostComments(postId: number) {
   try {
-    // 테이블이 없으면 자동 생성 (첫 호출 시)
     await sql`
       CREATE TABLE IF NOT EXISTS post_comments (
         id          SERIAL PRIMARY KEY,
@@ -103,7 +112,6 @@ export async function addComment(formData: FormData) {
   if (content.length > MAX_CONTENT) return { success: false, error: `댓글은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
 
   try {
-    // 테이블 없으면 생성
     await sql`
       CREATE TABLE IF NOT EXISTS post_comments (
         id          SERIAL PRIMARY KEY,
