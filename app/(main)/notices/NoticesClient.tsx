@@ -19,11 +19,12 @@ interface Props {
 const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const ITEMS_PER_PAGE = 10;
 
-import { parseCategoryBadges, CATEGORY_STYLE, DEFAULT_CATEGORY_STYLE } from '@/lib/categoryColors';
+import { parseCategoryBadges, CATEGORY_COLOR, DEFAULT_CATEGORY_COLOR } from '@/lib/categoryColors';
 
 function getNoticeIconColor(category: string, isPinned: boolean) {
   const first = isPinned ? '필독' : category.split(',')[0].trim();
-  const c = CATEGORY_STYLE[first] ?? DEFAULT_CATEGORY_STYLE;
+  const c = CATEGORY_COLOR[first] ?? DEFAULT_CATEGORY_COLOR;
+  // 아이콘 원형 배경은 텍스트색을 배경색으로, 배경색을 텍스트색으로 반전
   return { bg: c.text.replace('text-', 'bg-'), icon: 'text-white' };
 }
 
@@ -192,9 +193,7 @@ export default function NoticesClient({ initialNotices }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {parseCategoryBadges(n.isPinned ? `필독,${n.category}` : n.category).map(b => (
-                    <span key={b.label} className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${b.bg} ${b.text}`}>
-                      <span>{b.icon}</span>{b.label}
-                    </span>
+                    <span key={b.label} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.bg} ${b.text}`}>{b.label}</span>
                   ))}
                   <span className="font-semibold text-[#191c1d] truncate">{n.title}</span>
                 </div>
