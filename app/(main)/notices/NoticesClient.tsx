@@ -19,14 +19,7 @@ interface Props {
 const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const ITEMS_PER_PAGE = 10;
 
-import { parseCategoryBadges, CATEGORY_COLOR, DEFAULT_CATEGORY_COLOR } from '@/lib/categoryColors';
-
-function getNoticeIconColor(category: string, isPinned: boolean) {
-  const first = isPinned ? '필독' : category.split(',')[0].trim();
-  const c = CATEGORY_COLOR[first] ?? DEFAULT_CATEGORY_COLOR;
-  // 아이콘 원형 배경은 텍스트색을 배경색으로, 배경색을 텍스트색으로 반전
-  return { bg: c.text.replace('text-', 'bg-'), icon: 'text-white' };
-}
+import { parseCategoryBadges, getIconBg } from '@/lib/categoryColors';
 
 function todayStr() {
   const d = new Date();
@@ -183,13 +176,11 @@ export default function NoticesClient({ initialNotices }: Props) {
               onClick={() => openNoticeDetail(n as any)}
               className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < paginated.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
             >
-              {(() => { const c = getNoticeIconColor(n.category, n.isPinned); return (
-              <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${c.bg}`}>
-                <span className={`material-symbols-outlined ${c.icon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+              <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getIconBg(n.category, n.isPinned)}`}>
+                <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
                   {n.icon}
                 </span>
               </div>
-              ); })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {parseCategoryBadges(n.isPinned ? `필독,${n.category}` : n.category).map(b => (
