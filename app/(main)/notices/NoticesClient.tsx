@@ -19,6 +19,20 @@ interface Props {
 const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const ITEMS_PER_PAGE = 10;
 
+const categoryColor: Record<string, { bg: string; icon: string }> = {
+  '필독':      { bg: 'bg-[#db313f]',  icon: 'text-white' },
+  '공지사항':  { bg: 'bg-[#0047ab]',  icon: 'text-white' },
+  '취업정보':  { bg: 'bg-[#2A9D8F]',  icon: 'text-white' },
+  '취업활동양식': { bg: 'bg-[#e76f51]', icon: 'text-white' },
+  '기타':      { bg: 'bg-[#6c757d]',  icon: 'text-white' },
+};
+
+function getNoticeColor(category: string, isPinned: boolean) {
+  if (isPinned) return { bg: 'bg-[#db313f]', icon: 'text-white' };
+  const first = category.split(',')[0].trim();
+  return categoryColor[first] ?? { bg: 'bg-[#edeeef]', icon: 'text-[#434653]' };
+}
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
@@ -174,11 +188,13 @@ export default function NoticesClient({ initialNotices }: Props) {
               onClick={() => openNoticeDetail(n as any)}
               className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < paginated.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
             >
-              <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${n.isPinned ? 'bg-[#db313f]' : 'bg-[#edeeef]'}`}>
-                <span className={`material-symbols-outlined ${n.isPinned ? 'text-white' : 'text-[#434653]'}`} style={{ fontVariationSettings: n.isPinned ? "'FILL' 1" : "'FILL' 0" }}>
+              {(() => { const c = getNoticeColor(n.category, n.isPinned); return (
+              <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${c.bg}`}>
+                <span className={`material-symbols-outlined ${c.icon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
                   {n.icon}
                 </span>
               </div>
+              ); })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {n.isPinned && <span className="text-[#b7102a] font-bold text-xs px-2 py-0.5 bg-[#ffdad8] rounded-full">[필독]</span>}
