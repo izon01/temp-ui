@@ -37,18 +37,22 @@ interface Props {
 
 function formatLastAccess(dateStr: string): string {
   if (!dateStr) return '기록 없음';
+  // 날짜 형식(YYYY-MM-DD)이면 상대 표현으로 변환
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '기록 없음';
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  const yy = String(d.getFullYear()).slice(2);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yy}.${mm}.${dd}`;
+  if (!isNaN(d.getTime())) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
+    if (diffDays === 0) return '오늘';
+    if (diffDays === 1) return '어제';
+    const yy = String(d.getFullYear()).slice(2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yy}.${mm}.${dd}`;
+  }
+  // 이미 한글 텍스트("오늘", "2일 전" 등)면 그대로 표시
+  return dateStr;
 }
 
 function todayStr() {
