@@ -4,10 +4,18 @@ import { useState, useRef, useEffect } from 'react';
 import { useModal } from '@/components/Modals/ModalContext';
 
 const statusConfig = {
-  '정상': { label: '🟢정상', bg: 'bg-[#2A9D8F]', text: 'text-white', bar: 'bg-[#00327d]' },
-  '주의': { label: '🟡주의', bg: 'bg-[#FFB703]', text: 'text-[#410007]', bar: 'bg-[#FFB703]' },
-  '위험': { label: '🔴위험', bg: 'bg-[#E63946]', text: 'text-white', bar: 'bg-[#ba1a1a]' },
+  '정상':   { label: '🟢정상',   bg: 'bg-[#2A9D8F]', text: 'text-white',      bar: 'bg-[#00327d]' },
+  '주의':   { label: '🟡주의',   bg: 'bg-[#FFB703]', text: 'text-[#410007]',  bar: 'bg-[#FFB703]' },
+  '위험':   { label: '🔴위험',   bg: 'bg-[#E63946]', text: 'text-white',      bar: 'bg-[#ba1a1a]' },
+  '미참여': { label: '⚫미참여', bg: 'bg-[#9E9E9E]', text: 'text-white',      bar: 'bg-[#9E9E9E]' },
 } as const;
+
+// 활동지수 기반으로 상태 결정 (DB status 값보다 우선)
+function deriveStatus(participationRate: number): keyof typeof statusConfig {
+  if (participationRate === 0)  return '미참여';
+  if (participationRate < 50)   return '주의';
+  return '정상';
+}
 
 type SortKey = 'name' | 'participation_desc' | 'participation_asc';
 const SORT_LABELS: Record<SortKey, string> = {
@@ -293,7 +301,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
               )}
             </div>
           ) : displayed.map(p => {
-            const status = statusConfig[p.status as keyof typeof statusConfig] ?? statusConfig['정상'];
+            const status = statusConfig[deriveStatus(p.participationRate)];
             return (
               <div
                 key={p.id}
