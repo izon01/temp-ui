@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 
@@ -60,7 +60,7 @@ export async function createCommunityPost(formData: FormData) {
       INSERT INTO community_posts (category, title, content, author_id, author_name, has_image, image_url)
       VALUES (${category}, ${title}, ${content}, ${session.user.id}, ${session.user.name ?? '익명'}, ${!!imageUrl}, ${imageUrl})
     `;
-    revalidateTag('community-posts');
+
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -82,7 +82,7 @@ export async function updateCommunityPost(id: number, formData: FormData) {
 
   try {
     await sql`UPDATE community_posts SET category=${category}, title=${title}, content=${content} WHERE id=${id}`;
-    revalidateTag('community-posts');
+
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -96,7 +96,7 @@ export async function deleteCommunityPost(id: number) {
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
   try {
     await sql`DELETE FROM community_posts WHERE id = ${id}`;
-    revalidateTag('community-posts');
+
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -137,7 +137,7 @@ export async function addComment(formData: FormData) {
       VALUES (${postId}, ${session.user.id}, ${session.user.name ?? '익명'}, ${content})
     `;
     await sql`UPDATE community_posts SET comments = comments + 1 WHERE id = ${postId}`;
-    revalidateTag('community-posts');
+
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -152,7 +152,7 @@ export async function deleteComment(id: number, postId: number) {
   try {
     await sql`DELETE FROM post_comments WHERE id = ${id}`;
     await sql`UPDATE community_posts SET comments = GREATEST(0, comments - 1) WHERE id = ${postId}`;
-    revalidateTag('community-posts');
+
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
