@@ -104,8 +104,8 @@ export default function HomeClient({ participants, participantCount, avgParticip
       {pinnedNotices.length > 0 && (
         <section className="bg-[#fff8f7] border border-[#ffdad6] rounded-2xl px-5 py-4 flex flex-col gap-2">
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[#b7102a] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>notification_important</span>
-            <span className="text-xs font-bold text-[#b7102a] uppercase tracking-widest">필독 공지</span>
+            <span className="material-symbols-outlined text-[#b7102a] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
+            <span className="text-xs font-bold text-[#b7102a] uppercase tracking-widest">공지사항</span>
           </div>
           {pinnedNotices.map(n => (
             <button
