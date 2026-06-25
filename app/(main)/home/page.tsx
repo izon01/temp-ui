@@ -11,16 +11,16 @@ export default async function HomePage() {
   const userId  = session?.user?.id ?? '';
   const isAdmin = session?.user?.role === 'admin';
 
-  const [{ participants: dbParticipants, avgParticipationRate }, participantCount, submissionRate, allNotices] = await Promise.all([
-    getParticipantsWithParticipationRate(),
+  // participants는 통계와 완전히 독립 실행 — 통계 에러가 리스트에 영향 없음
+  const { participants, avgParticipationRate } = await getParticipantsWithParticipationRate();
+
+  const [participantCount, submissionRate, allNotices] = await Promise.all([
     getParticipantCount(),
     isAdmin
       ? getAssignmentSubmissionRate()
       : getParticipantActivityStats(userId).then(s => s.overallRate),
     getNotices(),
   ]);
-
-  const participants = dbParticipants;
 
   const pinnedNotices = (allNotices ?? [])
     .slice(0, 3)
