@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
@@ -15,7 +15,6 @@ interface Post {
 
 interface Props {
   initialPosts: Post[];
-  searchQuery: string;
 }
 
 const categoryStyle: Record<string, { bg: string; text: string }> = {
@@ -40,26 +39,21 @@ function todayStr() {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
 }
 
-export default function CommunityClient({ initialPosts, searchQuery }: Props) {
+export default function CommunityClient({ initialPosts }: Props) {
   const [activeTab, setActiveTab] = useState('전체');
   const [currentPage, setCurrentPage] = useState(1);
-  const [inputValue, setInputValue] = useState(searchQuery);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
   const { openWrite, openPostDetail } = useModal();
   const { showToast } = useApp();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
   const today = todayStr();
 
-  const handleSearch = () => {
-    const q = inputRef.current?.value.trim() ?? '';
-    router.push(q ? `/community?q=${encodeURIComponent(q)}` : '/community');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleSearch();
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
   };
 
   const handleDeletePost = (e: React.MouseEvent, post: Post) => {
@@ -81,9 +75,9 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
     setCurrentPage(1);
   };
 
-  const filtered = activeTab === '전체'
-    ? initialPosts
-    : initialPosts.filter(p => p.category === activeTab);
+  const filtered = initialPosts
+    .filter(p => activeTab === '전체' || p.category === activeTab)
+    .filter(p => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.content.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
@@ -127,24 +121,17 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
       {/* Search & filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-grow relative">
-          <span
-            onClick={handleSearch}
-            className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784] cursor-pointer hover:text-[#00327d] transition-colors"
-          >
-            search
-          </span>
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784]">search</span>
           <input
-            ref={inputRef}
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
+            value={searchQuery}
+            onChange={e => handleSearchChange(e.target.value)}
             className="w-full bg-white border border-[#c3c6d5] focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] rounded-lg pl-12 pr-10 py-3 outline-none transition-all"
-            placeholder="관심 있는 키워드를 검색 후 Enter"
+            placeholder="제목 또는 내용으로 검색"
             type="text"
           />
-          {inputValue && (
+          {searchQuery && (
             <button
-              onClick={() => { setInputValue(''); router.push('/community'); }}
+              onClick={() => handleSearchChange('')}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737784] hover:text-[#191c1d]"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
@@ -173,7 +160,7 @@ export default function CommunityClient({ initialPosts, searchQuery }: Props) {
             {searchQuery ? 'search_off' : 'forum'}
           </span>
           {searchQuery
-            ? <><p className="font-semibold">"{searchQuery}" 검색 결과가 없습니다.</p><p className="text-sm mt-1">다른 키워드로 검색해보세요.</p></>
+            ? <><p className="font-semibold">&ldquo;{searchQuery}&rdquo; 검색 결과가 없습니다.</p><p className="text-sm mt-1">다른 키워드로 검색해보세요.</p></>
             : <><p className="font-semibold">아직 게시글이 없습니다.</p><p className="text-sm mt-1">첫 번째 글을 작성해보세요!</p></>
           }
         </div>
