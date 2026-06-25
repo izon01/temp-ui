@@ -26,7 +26,7 @@ export default async function HomePage() {
     : mockParticipants.map(p => ({ ...p, lastAccess: p.lastAccess, participationRate: p.attendance }));
 
   const pinnedNotices = (allNotices ?? [])
-    .filter(n => n.isPinned)
+    .filter(n => n.isPinned || n.category.split(',').map(c => c.trim()).includes('필독'))
     .slice(0, 3)
     .map(n => ({ id: n.id, title: n.title, date: n.date, views: n.views, isPinned: n.isPinned, category: n.category, icon: n.icon, content: n.content }));
 
