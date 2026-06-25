@@ -61,7 +61,7 @@ function LoginForm() {
           경북청년인재스쿨
         </h1>
         <p className="text-[#a5bdff] max-w-[280px] mx-auto leading-relaxed text-sm">
-          청년의 성장을 연결하고, 취업의 기회를 만들어갑니다.
+          청년의 성장을 연결하고,<br />취업의 기회를 만들어갑니다.
         </p>
       </div>
 
