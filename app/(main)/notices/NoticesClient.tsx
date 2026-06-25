@@ -19,18 +19,13 @@ interface Props {
 const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const ITEMS_PER_PAGE = 10;
 
-const categoryColor: Record<string, { bg: string; icon: string }> = {
-  '필독':      { bg: 'bg-[#db313f]',  icon: 'text-white' },
-  '공지사항':  { bg: 'bg-[#0047ab]',  icon: 'text-white' },
-  '취업정보':  { bg: 'bg-[#2A9D8F]',  icon: 'text-white' },
-  '취업활동양식': { bg: 'bg-[#e76f51]', icon: 'text-white' },
-  '기타':      { bg: 'bg-[#6c757d]',  icon: 'text-white' },
-};
+import { parseCategoryBadges, CATEGORY_COLOR, DEFAULT_CATEGORY_COLOR } from '@/lib/categoryColors';
 
-function getNoticeColor(category: string, isPinned: boolean) {
-  if (isPinned) return { bg: 'bg-[#db313f]', icon: 'text-white' };
-  const first = category.split(',')[0].trim();
-  return categoryColor[first] ?? { bg: 'bg-[#edeeef]', icon: 'text-[#434653]' };
+function getNoticeIconColor(category: string, isPinned: boolean) {
+  const first = isPinned ? '필독' : category.split(',')[0].trim();
+  const c = CATEGORY_COLOR[first] ?? DEFAULT_CATEGORY_COLOR;
+  // 아이콘 원형 배경은 텍스트색을 배경색으로, 배경색을 텍스트색으로 반전
+  return { bg: c.text.replace('text-', 'bg-'), icon: 'text-white' };
 }
 
 function todayStr() {
@@ -188,7 +183,7 @@ export default function NoticesClient({ initialNotices }: Props) {
               onClick={() => openNoticeDetail(n as any)}
               className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < paginated.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
             >
-              {(() => { const c = getNoticeColor(n.category, n.isPinned); return (
+              {(() => { const c = getNoticeIconColor(n.category, n.isPinned); return (
               <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${c.bg}`}>
                 <span className={`material-symbols-outlined ${c.icon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
                   {n.icon}
@@ -197,9 +192,8 @@ export default function NoticesClient({ initialNotices }: Props) {
               ); })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  {n.isPinned && <span className="text-[#b7102a] font-bold text-xs px-2 py-0.5 bg-[#ffdad8] rounded-full">[필독]</span>}
-                  {n.category.split(',').map(c => c.trim()).filter(Boolean).map(cat => (
-                    <span key={cat} className="text-xs px-2 py-0.5 bg-[#e7e8e9] text-[#434653] rounded-full">{cat}</span>
+                  {parseCategoryBadges(n.isPinned ? `필독,${n.category}` : n.category).map(b => (
+                    <span key={b.label} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.bg} ${b.text}`}>{b.label}</span>
                   ))}
                   <span className="font-semibold text-[#191c1d] truncate">{n.title}</span>
                 </div>

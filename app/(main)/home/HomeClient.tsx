@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { parseCategoryBadges } from '@/lib/categoryColors';
 import { useModal } from '@/components/Modals/ModalContext';
 
 const statusConfig = {
@@ -143,9 +144,9 @@ export default function HomeClient({ participants, participantCount, avgParticip
               onClick={() => openNoticeDetail(n)}
               className="w-full flex items-center gap-3 text-left hover:bg-[#ffdad6]/40 rounded-xl px-3 py-2 transition-colors group"
             >
-              {n.isPinned && (
-                <span className="flex-shrink-0 bg-[#b7102a] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full leading-tight">필독</span>
-              )}
+              {parseCategoryBadges(n.isPinned ? `필독,${n.category}` : n.category).map(b => (
+                <span key={b.label} className={`flex-shrink-0 text-[10px] font-extrabold px-2 py-0.5 rounded-full leading-tight ${b.bg} ${b.text}`}>{b.label}</span>
+              ))}
               <span className="flex-1 text-sm font-semibold text-[#191c1d] truncate group-hover:text-[#b7102a] transition-colors">{n.title}</span>
               <span className="flex-shrink-0 text-xs text-[#737784]">{n.date}</span>
               <span className="material-symbols-outlined text-[16px] text-[#737784] flex-shrink-0">chevron_right</span>
