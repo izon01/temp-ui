@@ -19,6 +19,8 @@ export default function Header() {
   const { data: session } = useSession();
 
   const handleSignOut = async () => {
+    localStorage.removeItem('remember_me');
+    sessionStorage.removeItem('session_active');
     await signOut({ callbackUrl: '/login' });
   };
 

@@ -6,11 +6,11 @@ import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
 
-// useSearchParams를 쓰는 내부 컴포넌트 → Suspense로 감싸야 빌드 통과
 function LoginForm() {
   const [showPwd, setShowPwd] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { openForgotPassword } = useModal();
@@ -35,6 +35,14 @@ function LoginForm() {
       if (result?.error) {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
       } else {
+        // 로그인 유지 여부에 따라 스토리지 분기
+        if (rememberMe) {
+          localStorage.setItem('remember_me', '1');
+          sessionStorage.removeItem('session_active');
+        } else {
+          sessionStorage.setItem('session_active', '1');
+          localStorage.removeItem('remember_me');
+        }
         router.push('/home');
         router.refresh();
       }
@@ -53,7 +61,7 @@ function LoginForm() {
           경북청년인재스쿨
         </h1>
         <p className="text-[#a5bdff] max-w-[280px] mx-auto leading-relaxed text-sm">
-          경상북도의 미래를 이끄는 청년 인재들의 성장을 지원합니다.
+          청년의 성장을 연결하고, 취업의 기회를 만들어갑니다.
         </p>
       </div>
 
@@ -71,13 +79,6 @@ function LoginForm() {
             회원가입이 완료되었습니다! 만든 아이디로 로그인해 주세요.
           </div>
         )}
-
-        {/* 테스트 계정 안내 */}
-        <div className="bg-[#dae2ff] rounded-lg p-3 text-xs text-[#001946] space-y-0.5">
-          <p className="font-bold mb-1">테스트 계정</p>
-          <p>관리자: <span className="font-mono font-bold">admin</span> / admin1234</p>
-          <p>참여자: <span className="font-mono font-bold">kimjisoo</span> / pass1234</p>
-        </div>
 
         <form className="flex flex-col gap-4" onSubmit={handleLogin}>
           {/* Error */}
@@ -131,7 +132,12 @@ function LoginForm() {
 
           <div className="flex flex-col gap-4 mt-2">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="w-4 h-4 rounded border-[#c3c6d5] text-[#00327d] focus:ring-[#00327d]/20" />
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-[#c3c6d5] text-[#00327d] focus:ring-[#00327d]/20"
+              />
               <span className="text-sm text-[#434653]">로그인 상태 유지</span>
             </label>
 
