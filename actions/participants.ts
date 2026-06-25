@@ -150,7 +150,7 @@ export async function getParticipantsWithParticipationRate(): Promise<{
         p.track,
         p.attendance,
         p.status,
-        p.last_access AS "lastAccess",
+        TO_CHAR(p.last_access, 'YYYY-MM-DD') AS "lastAccess",
         COUNT(a.id)::int   AS total_items,
         COUNT(s.id)::int   AS submitted_items
       FROM participants p

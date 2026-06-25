@@ -35,6 +35,22 @@ interface Props {
   pinnedNotices: PinnedNotice[];
 }
 
+function formatLastAccess(dateStr: string): string {
+  if (!dateStr) return '기록 없음';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '기록 없음';
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '어제';
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yy}.${mm}.${dd}`;
+}
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
@@ -287,7 +303,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
                 <div className="flex items-center gap-4 md:justify-end">
                   <div className="text-right hidden md:block">
                     <p className="text-xs text-[#434653]">최근 접속</p>
-                    <p className="text-sm font-semibold">{p.lastAccess}</p>
+                    <p className="text-sm font-semibold">{formatLastAccess(p.lastAccess)}</p>
                   </div>
                   <span className="material-symbols-outlined text-[#434653]">chevron_right</span>
                 </div>

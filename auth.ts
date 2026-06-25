@@ -55,6 +55,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const valid = await bcrypt.compare(password, user.password_hash as string);
           if (!valid) return null;
 
+          // 로그인 성공 시 마지막 접속 시간 갱신
+          await sql`UPDATE participants SET last_access = CURRENT_DATE WHERE id = ${user.id}`;
+
           return {
             id:    String(user.id),
             email: user.email as string,
