@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 
@@ -31,6 +31,7 @@ export async function createNotice(formData: FormData) {
       INSERT INTO notices (title, content, category, is_pinned, icon, image_url, author_id)
       VALUES (${title}, ${content}, ${category}, ${isPinned}, ${icon}, ${imageUrl}, ${session.user.id})
     `;
+    revalidateTag('notices');
     revalidatePath('/notices');
     return { success: true };
   } catch (error) {
@@ -54,6 +55,7 @@ export async function updateNotice(id: number, formData: FormData) {
 
   try {
     await sql`UPDATE notices SET title=${title}, content=${content}, category=${category}, is_pinned=${isPinned}, icon=${icon} WHERE id=${id}`;
+    revalidateTag('notices');
     revalidatePath('/notices');
     return { success: true };
   } catch (error) {
@@ -67,6 +69,7 @@ export async function deleteNotice(id: number) {
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
   try {
     await sql`DELETE FROM notices WHERE id = ${id}`;
+    revalidateTag('notices');
     revalidatePath('/notices');
     return { success: true };
   } catch (error) {
@@ -92,9 +95,8 @@ async function ensureNoticesTable() {
   `;
 }
 
-export async function getNotices(q?: string) {
-  const query = q?.trim() ?? '';
-  try {
+const fetchNotices = unstable_cache(
+  async (query: string) => {
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
@@ -113,6 +115,14 @@ export async function getNotices(q?: string) {
       id: number; title: string; content: string; category: string;
       isPinned: boolean; icon: string; views: number; imageUrl: string | null; date: string;
     }>;
+  },
+  ['notices'],
+  { tags: ['notices'], revalidate: 60 }
+);
+
+export async function getNotices(q?: string) {
+  try {
+    return await fetchNotices(q?.trim() ?? '');
   } catch (error) {
     console.error('[getNotices]', error);
     return null;
