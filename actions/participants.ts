@@ -151,14 +151,10 @@ export async function getParticipantsWithParticipationRate(): Promise<{
         p.attendance,
         p.status,
         TO_CHAR(p.last_access, 'YYYY-MM-DD') AS "lastAccess",
-        COUNT(a.id)::int   AS total_items,
-        COUNT(s.id)::int   AS submitted_items
+        (SELECT COUNT(*)::int FROM assignments)                                   AS total_items,
+        (SELECT COUNT(*)::int FROM assignment_submissions s WHERE s.participant_id = p.id) AS submitted_items
       FROM participants p
-      CROSS JOIN assignments a
-      LEFT JOIN assignment_submissions s
-        ON s.assignment_id = a.id AND s.participant_id = p.id
       WHERE p.role = 'participant'
-      GROUP BY p.id, p.name, p.team, p.track, p.attendance, p.status, p.last_access
       ORDER BY p.id
     `;
 
