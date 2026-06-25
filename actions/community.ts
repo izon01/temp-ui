@@ -1,34 +1,46 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 
 const MAX_CONTENT = 1000;
 
+const fetchCommunityPosts = unstable_cache(
+  async (query: string) => {
+    const rows = query
+      ? await sql`
+          SELECT id, category, title, content, author_name AS "authorName",
+                 has_image AS "hasImage", image_url AS "imageUrl", comments,
+                 TO_CHAR(created_at, 'YYYY-MM-DD') AS date
+          FROM community_posts
+          WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
+          ORDER BY created_at DESC
+        `
+      : await sql`
+          SELECT id, category, title, content, author_name AS "authorName",
+                 has_image AS "hasImage", image_url AS "imageUrl", comments,
+                 TO_CHAR(created_at, 'YYYY-MM-DD') AS date
+          FROM community_posts
+          ORDER BY created_at DESC
+        `;
+    return rows as Array<{
+      id: number; category: string; title: string; content: string;
+      authorName: string; hasImage: boolean; imageUrl: string | null;
+      comments: number; date: string;
+    }>;
+  },
+  ['community-posts'],
+  { tags: ['community-posts'], revalidate: 60 }
+);
+
 export async function getCommunityPosts(q?: string) {
-  const query = q?.trim() ?? '';
-  const rows = query
-    ? await sql`
-        SELECT id, category, title, content, author_name AS "authorName",
-               has_image AS "hasImage", image_url AS "imageUrl", comments,
-               TO_CHAR(created_at, 'YYYY-MM-DD') AS date
-        FROM community_posts
-        WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
-        ORDER BY created_at DESC
-      `
-    : await sql`
-        SELECT id, category, title, content, author_name AS "authorName",
-               has_image AS "hasImage", image_url AS "imageUrl", comments,
-               TO_CHAR(created_at, 'YYYY-MM-DD') AS date
-        FROM community_posts
-        ORDER BY created_at DESC
-      `;
-  return rows as Array<{
-    id: number; category: string; title: string; content: string;
-    authorName: string; hasImage: boolean; imageUrl: string | null;
-    comments: number; date: string;
-  }>;
+  try {
+    return await fetchCommunityPosts(q?.trim() ?? '');
+  } catch (error) {
+    console.error('[getCommunityPosts]', error);
+    return [];
+  }
 }
 
 export async function createCommunityPost(formData: FormData) {
@@ -48,6 +60,7 @@ export async function createCommunityPost(formData: FormData) {
       INSERT INTO community_posts (category, title, content, author_id, author_name, has_image, image_url)
       VALUES (${category}, ${title}, ${content}, ${session.user.id}, ${session.user.name ?? '익명'}, ${!!imageUrl}, ${imageUrl})
     `;
+    revalidateTag('community-posts');
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -69,6 +82,7 @@ export async function updateCommunityPost(id: number, formData: FormData) {
 
   try {
     await sql`UPDATE community_posts SET category=${category}, title=${title}, content=${content} WHERE id=${id}`;
+    revalidateTag('community-posts');
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -82,6 +96,7 @@ export async function deleteCommunityPost(id: number) {
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };
   try {
     await sql`DELETE FROM community_posts WHERE id = ${id}`;
+    revalidateTag('community-posts');
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -92,16 +107,6 @@ export async function deleteCommunityPost(id: number) {
 
 export async function getPostComments(postId: number) {
   try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS post_comments (
-        id          SERIAL PRIMARY KEY,
-        post_id     INT NOT NULL,
-        author_id   INT REFERENCES participants(id),
-        author_name TEXT NOT NULL,
-        content     TEXT NOT NULL,
-        created_at  TIMESTAMPTZ DEFAULT NOW()
-      )
-    `;
     const rows = await sql`
       SELECT id, author_name AS "authorName", content,
              TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS "createdAt"
@@ -128,20 +133,11 @@ export async function addComment(formData: FormData) {
 
   try {
     await sql`
-      CREATE TABLE IF NOT EXISTS post_comments (
-        id          SERIAL PRIMARY KEY,
-        post_id     INT NOT NULL,
-        author_id   INT REFERENCES participants(id),
-        author_name TEXT NOT NULL,
-        content     TEXT NOT NULL,
-        created_at  TIMESTAMPTZ DEFAULT NOW()
-      )
-    `;
-    await sql`
       INSERT INTO post_comments (post_id, author_id, author_name, content)
       VALUES (${postId}, ${session.user.id}, ${session.user.name ?? '익명'}, ${content})
     `;
     await sql`UPDATE community_posts SET comments = comments + 1 WHERE id = ${postId}`;
+    revalidateTag('community-posts');
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
@@ -156,6 +152,7 @@ export async function deleteComment(id: number, postId: number) {
   try {
     await sql`DELETE FROM post_comments WHERE id = ${id}`;
     await sql`UPDATE community_posts SET comments = GREATEST(0, comments - 1) WHERE id = ${postId}`;
+    revalidateTag('community-posts');
     revalidatePath('/community');
     return { success: true };
   } catch (error) {
