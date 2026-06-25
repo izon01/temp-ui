@@ -142,7 +142,6 @@ export async function getParticipantsWithParticipationRate(): Promise<{
   avgParticipationRate: number;
 }> {
   // 1단계: 참여자 목록 — assignments 테이블과 독립적으로 항상 조회
-  console.log('[getParticipantsWithParticipationRate] Fetching participants...');
   let baseRows: Array<Record<string, unknown>> = [];
   try {
     baseRows = await sql`
@@ -152,11 +151,9 @@ export async function getParticipantsWithParticipationRate(): Promise<{
       WHERE role = 'participant'
       ORDER BY id
     ` as Array<Record<string, unknown>>;
-    console.log('[getParticipantsWithParticipationRate] Fetched:', JSON.stringify(baseRows));
   } catch (error) {
     console.error('[getParticipantsWithParticipationRate] participants 조회 실패:', error);
-    // 어디가 막혔는지 알 수 있도록 throw
-    throw error;
+    return { participants: [], avgParticipationRate: 0 };
   }
 
   // 2단계: 과제 통계 — 테이블 없으면 0으로 폴백
