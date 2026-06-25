@@ -22,11 +22,17 @@ interface Participant {
   participationRate: number;
 }
 
+interface PinnedNotice {
+  id: number; title: string; date: string; views: number;
+  isPinned: boolean; category: string; icon: string; content?: string;
+}
+
 interface Props {
   participants: Participant[];
   participantCount: number;
   avgParticipationRate: number;
   submissionRate: number;
+  pinnedNotices: PinnedNotice[];
 }
 
 function todayStr() {
@@ -34,8 +40,8 @@ function todayStr() {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
 }
 
-export default function HomeClient({ participants, participantCount, avgParticipationRate, submissionRate }: Props) {
-  const { openParticipantProfile } = useModal();
+export default function HomeClient({ participants, participantCount, avgParticipationRate, submissionRate, pinnedNotices }: Props) {
+  const { openParticipantProfile, openNoticeDetail } = useModal();
   const today = todayStr();
 
   const [sortBy, setSortBy] = useState<SortKey>('name');
@@ -93,6 +99,28 @@ export default function HomeClient({ participants, participantCount, avgParticip
           />
         </div>
       </section>
+
+      {/* ── 필독 공지 ── */}
+      {pinnedNotices.length > 0 && (
+        <section className="bg-[#fff8f7] border border-[#ffdad6] rounded-2xl px-5 py-4 flex flex-col gap-2">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#b7102a] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>notification_important</span>
+            <span className="text-xs font-bold text-[#b7102a] uppercase tracking-widest">필독 공지</span>
+          </div>
+          {pinnedNotices.map(n => (
+            <button
+              key={n.id}
+              onClick={() => openNoticeDetail(n)}
+              className="w-full flex items-center gap-3 text-left hover:bg-[#ffdad6]/40 rounded-xl px-3 py-2 transition-colors group"
+            >
+              <span className="flex-shrink-0 bg-[#b7102a] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full leading-tight">필독</span>
+              <span className="flex-1 text-sm font-semibold text-[#191c1d] truncate group-hover:text-[#b7102a] transition-colors">{n.title}</span>
+              <span className="flex-shrink-0 text-xs text-[#737784]">{n.date}</span>
+              <span className="material-symbols-outlined text-[16px] text-[#737784] flex-shrink-0">chevron_right</span>
+            </button>
+          ))}
+        </section>
+      )}
 
       {/* Summary Dashboard */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
