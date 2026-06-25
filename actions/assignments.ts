@@ -7,9 +7,6 @@ import { sql } from '@/lib/db';
 const MAX_CONTENT = 1000;
 
 export async function getAssignments(participantId?: string) {
-  try {
-    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
-  } catch {}
   const rows = await sql`
     SELECT
       a.id, a.week, a.category, a.title, a.description,
@@ -41,7 +38,6 @@ export async function createAssignment(formData: FormData) {
   if (description.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
 
   try {
-    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
     await sql`INSERT INTO assignments (week, category, title, description, deadline, created_by) VALUES (${week}, ${category}, ${title}, ${description}, ${deadline}, ${session.user.id})`;
     revalidatePath('/education');
     return { success: true };
@@ -70,8 +66,6 @@ export async function getMySubmission(assignmentId: number) {
   const session = await auth();
   if (!session?.user) return null;
   try {
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content TEXT`;
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS file_data TEXT`;
     const rows = await sql`
       SELECT link, file_name AS "fileName", file_data AS "fileData", content,
              TO_CHAR(submitted_at, 'YYYY-MM-DD HH24:MI') AS "submittedAt"
@@ -99,8 +93,6 @@ export async function getAssignmentSubmissions(assignmentId: number) {
   const session = await auth();
   if (session?.user?.role !== 'admin') return [];
   try {
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content   TEXT`;
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS file_data TEXT`;
     const rows = await sql`
       SELECT s.id,
              p.name AS "participantName", p.team, p.track,
@@ -136,7 +128,6 @@ export async function updateAssignment(id: number, formData: FormData) {
   if (!week || !title || !deadline) return { success: false, error: '회차, 과제명, 제출 기한은 필수입니다.' };
 
   try {
-    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
     await sql`
       UPDATE assignments
       SET week = ${week}, category = ${category}, title = ${title}, description = ${description}, deadline = ${deadline}
@@ -153,8 +144,6 @@ export async function updateAssignment(id: number, formData: FormData) {
 /** 참여자 활동 통계 + 레벨 계산 */
 export async function getParticipantActivityStats(participantId: string) {
   try {
-    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
-
     const rows = await sql`
       SELECT
         COALESCE(a.category, '과제') AS category,
@@ -179,9 +168,9 @@ export async function getParticipantActivityStats(participantId: string) {
     const task      = byCategory['과제']   ?? { total: 0, submitted: 0 };
     const mentoring = byCategory['멘토링'] ?? { total: 0, submitted: 0 };
 
-    const overallRate = totalAll === 0 ? 0 : Math.min(100, Math.round((submittedAll / totalAll) * 100));
-    const level         = Math.min(10, 1 + Math.floor(submittedAll / 5));
-    const levelProgress = submittedAll % 5;       // 현재 레벨 내 진행 수 (0~4)
+    const overallRate    = totalAll === 0 ? 0 : Math.min(100, Math.round((submittedAll / totalAll) * 100));
+    const level          = Math.min(10, 1 + Math.floor(submittedAll / 5));
+    const levelProgress  = submittedAll % 5;
     const nextLevelNeeds = level < 10 ? 5 - levelProgress : 0;
 
     return { overallRate, camp, task, mentoring, level, levelProgress, nextLevelNeeds, totalAll, submittedAll };
@@ -219,14 +208,6 @@ export async function getAssignmentSubmissionRate(): Promise<number> {
 /** 관리자용: 전체 참여자 모니터링 통계 */
 export async function getAdminMonitoringStats() {
   try {
-    await sql`ALTER TABLE assignments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '과제'`;
-    await sql`
-      CREATE TABLE IF NOT EXISTS attendance_records (
-        id SERIAL PRIMARY KEY, participant_id INTEGER NOT NULL,
-        attended_date DATE NOT NULL, UNIQUE(participant_id, attended_date)
-      )
-    `;
-
     const [attendRows, catRows, countRows] = await Promise.all([
       sql`
         SELECT
@@ -277,8 +258,6 @@ export async function submitAssignmentAction(formData: FormData) {
   if (!link && !fileName && !content) return { success: false, error: '파일, 링크, 또는 본문 내용을 입력해주세요.' };
 
   try {
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS content   TEXT`;
-    await sql`ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS file_data TEXT`;
     const fileData = String(formData.get('fileData') ?? '').trim() || null;
     await sql`
       INSERT INTO assignment_submissions (assignment_id, participant_id, link, file_name, file_data, content, status, submitted_at)

@@ -50,10 +50,6 @@ export async function getParticipantCount(): Promise<number> {
 
 export async function getParticipantProfile(id: number) {
   try {
-    // phone, profile_image 컬럼 자동 추가
-    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS phone TEXT`;
-    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS profile_image TEXT`;
-
     const rows = await sql`
       SELECT id, name, email, team, track, login_id, phone, profile_image AS "profileImage"
       FROM participants WHERE id = ${id} LIMIT 1
@@ -77,8 +73,6 @@ export async function updateParticipantProfile(
   data: { team: string; track: string; phone?: string; profileImage?: string }
 ) {
   try {
-    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS phone TEXT`;
-    await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS profile_image TEXT`;
     await sql`
       UPDATE participants
       SET team          = ${data.team},

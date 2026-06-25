@@ -7,11 +7,6 @@ import { sql } from '@/lib/db';
 const MAX_CONTENT = 1000;
 
 export async function getCommunityPosts(q?: string) {
-  // image_url 컬럼 자동 추가 (없을 경우)
-  try {
-    await sql`ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`;
-  } catch { /* ignore */ }
-
   const query = q?.trim() ?? '';
   const rows = query
     ? await sql`
@@ -49,7 +44,6 @@ export async function createCommunityPost(formData: FormData) {
   if (content.length > MAX_CONTENT) return { success: false, error: `내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.` };
 
   try {
-    await sql`ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`;
     await sql`
       INSERT INTO community_posts (category, title, content, author_id, author_name, has_image, image_url)
       VALUES (${category}, ${title}, ${content}, ${session.user.id}, ${session.user.name ?? '익명'}, ${!!imageUrl}, ${imageUrl})
