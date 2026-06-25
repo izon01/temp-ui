@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
@@ -14,7 +14,6 @@ interface Notice {
 
 interface Props {
   initialNotices: Notice[];
-  searchQuery: string;
 }
 
 const FILTERS = ['전체', '필독', '공지사항', '취업정보', '취업활동양식', '기타'];
@@ -25,17 +24,16 @@ function todayStr() {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 기준`;
 }
 
-export default function NoticesClient({ initialNotices, searchQuery }: Props) {
+export default function NoticesClient({ initialNotices }: Props) {
   const [activeFilter, setActiveFilter] = useState('전체');
   const [currentPage, setCurrentPage] = useState(1);
-  const [inputValue, setInputValue] = useState(searchQuery);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
   const { openNoticeDetail, openWriteNotice } = useModal();
   const { data: session } = useSession();
   const { showToast } = useApp();
   const isAdmin = session?.user?.role === 'admin';
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
   const today = todayStr();
 
   const handleDeleteNotice = (e: React.MouseEvent, notice: Notice) => {
@@ -52,23 +50,19 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
     });
   };
 
-  const handleSearch = () => {
-    const q = inputRef.current?.value.trim() ?? '';
-    router.push(q ? `/notices?q=${encodeURIComponent(q)}` : '/notices');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleSearch();
-  };
-
   const handleFilterChange = (f: string) => {
     setActiveFilter(f);
     setCurrentPage(1);
   };
 
-  const filtered = activeFilter === '전체'
-    ? initialNotices
-    : initialNotices.filter(n => n.category.split(',').map(c => c.trim()).includes(activeFilter));
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const filtered = initialNotices
+    .filter(n => activeFilter === '전체' || n.category.split(',').map(c => c.trim()).includes(activeFilter))
+    .filter(n => !searchQuery || n.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
@@ -106,7 +100,7 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
         <div className="md:col-span-2 bg-[#f3f4f5] rounded-xl p-6 flex flex-col justify-between overflow-hidden relative group min-h-[120px]">
           <div className="z-10">
             <span className="bg-[#00327d] text-white text-xs font-bold px-2 py-1 rounded-full mb-3 inline-block">
-              {searchQuery ? `검색: "${searchQuery}"` : 'HOT NEWS'}
+              {searchQuery ? `검색: "${searchQuery}"` : activeFilter !== '전체' ? activeFilter : 'HOT NEWS'}
             </span>
             <h3 className="font-bold text-lg text-[#191c1d] mb-1" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
               {filtered[0]?.title ?? '등록된 공지가 없습니다'}
@@ -129,24 +123,17 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
       {/* Search & filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-[280px]">
-          <span
-            onClick={handleSearch}
-            className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784] cursor-pointer hover:text-[#00327d] transition-colors"
-          >
-            search
-          </span>
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784]">search</span>
           <input
-            ref={inputRef}
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
+            value={searchQuery}
+            onChange={e => handleSearchChange(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-white border border-[#c3c6d5] rounded-xl focus:ring-2 focus:ring-[#00327d] focus:border-transparent outline-none transition-all"
-            placeholder="제목 또는 내용으로 검색 후 Enter"
+            placeholder="제목으로 검색"
             type="text"
           />
-          {inputValue && (
+          {searchQuery && (
             <button
-              onClick={() => { setInputValue(''); router.push('/notices'); }}
+              onClick={() => handleSearchChange('')}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737784] hover:text-[#191c1d]"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
@@ -176,7 +163,7 @@ export default function NoticesClient({ initialNotices, searchQuery }: Props) {
               {searchQuery ? 'search_off' : 'inbox'}
             </span>
             {searchQuery
-              ? <><p className="font-semibold">"{searchQuery}" 검색 결과가 없습니다.</p><p className="text-sm mt-1">다른 검색어를 입력해보세요.</p></>
+              ? <><p className="font-semibold">&ldquo;{searchQuery}&rdquo; 검색 결과가 없습니다.</p><p className="text-sm mt-1">다른 검색어를 입력해보세요.</p></>
               : <p>등록된 공지사항이 없습니다.</p>
             }
           </div>
