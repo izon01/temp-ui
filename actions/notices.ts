@@ -95,7 +95,6 @@ async function ensureNoticesTable() {
 export async function getNotices(q?: string) {
   const query = q?.trim() ?? '';
   try {
-    await ensureNoticesTable();
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
