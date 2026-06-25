@@ -4,7 +4,6 @@ import { auth } from '@/auth';
 import { getParticipantCount, getParticipantsWithParticipationRate } from '@/actions/participants';
 import { getParticipantActivityStats, getAssignmentSubmissionRate } from '@/actions/assignments';
 import { getNotices } from '@/actions/notices';
-import { participants as mockParticipants } from '@/data/mockData';
 import HomeClient from './HomeClient';
 
 export default async function HomePage() {
@@ -21,9 +20,7 @@ export default async function HomePage() {
     getNotices(),
   ]);
 
-  const participants = dbParticipants.length > 0
-    ? dbParticipants
-    : mockParticipants.map(p => ({ ...p, lastAccess: p.lastAccess, participationRate: p.attendance }));
+  const participants = dbParticipants;
 
   const pinnedNotices = (allNotices ?? [])
     .slice(0, 3)

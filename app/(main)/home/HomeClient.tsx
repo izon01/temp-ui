@@ -265,10 +265,28 @@ export default function HomeClient({ participants, participantCount, avgParticip
 
         <div className="grid grid-cols-1 gap-3">
           {displayed.length === 0 ? (
-            <div className="py-16 text-center text-[#737784]">
+            <div className="py-16 text-center text-[#737784] bg-white rounded-xl border border-[#e1e3e4]">
               <span className="material-symbols-outlined text-[48px] block mb-2">person_off</span>
-              <p className="font-semibold">해당 조건의 참여자가 없습니다.</p>
-              <button onClick={() => setFilterTeam('전체')} className="mt-3 text-sm text-[#0047ab] underline">필터 초기화</button>
+              {participants.length === 0 ? (
+                <>
+                  <p className="font-semibold text-[#191c1d]">등록된 참여자가 없습니다.</p>
+                  <p className="text-sm mt-1">관리자에게 문의하세요.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-[#191c1d]">
+                    <span className="text-[#0047ab]">{filterTeam}</span> 팀에 해당하는 참여자가 없습니다.
+                  </p>
+                  <p className="text-sm mt-1">다른 팀을 선택하거나 필터를 초기화하세요.</p>
+                  <button
+                    onClick={() => { setFilterTeam('전체'); setSortBy('name'); }}
+                    className="mt-4 inline-flex items-center gap-2 bg-[#0047ab] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">filter_alt_off</span>
+                    필터 초기화
+                  </button>
+                </>
+              )}
             </div>
           ) : displayed.map(p => {
             const status = statusConfig[p.status as keyof typeof statusConfig] ?? statusConfig['정상'];
