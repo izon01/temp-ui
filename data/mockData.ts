@@ -43,28 +43,7 @@ export interface CommunityPost {
   imageUrl?: string;
 }
 
-export const participants: Participant[] = [
-  { id: 1, name: '김지우', team: 'A팀', track: 'AI 솔루션 트랙', status: '정상', attendance: 98, lastAccess: '10분 전' },
-  { id: 2, name: '이민호', team: 'B팀', track: '플랫폼 개발 트랙', status: '주의', attendance: 72, lastAccess: '2일 전' },
-  { id: 3, name: '박서연', team: 'A팀', track: 'UI/UX 디자인 트랙', status: '위험', attendance: 45, lastAccess: '5일 전' },
-  { id: 4, name: '정재현', team: 'C팀', track: '데이터 분석 트랙', status: '정상', attendance: 80, lastAccess: '오늘' },
-  { id: 5, name: '최수민', team: 'D팀', track: '데이터 분석 트랙', status: '주의', attendance: 89, lastAccess: '오늘' },
-  { id: 6, name: '한지민', team: 'E팀', track: '플랫폼 개발 트랙', status: '정상', attendance: 76, lastAccess: '오늘' },
-  { id: 7, name: '강동우', team: 'C팀', track: 'AI 솔루션 트랙', status: '정상', attendance: 80, lastAccess: '오늘' },
-  { id: 8, name: '윤아름', team: 'D팀', track: 'UI/UX 디자인 트랙', status: '주의', attendance: 83, lastAccess: '1일 전' },
-  { id: 9, name: '임성민', team: 'E팀', track: '데이터 분석 트랙', status: '정상', attendance: 83, lastAccess: '오늘' },
-  { id: 10, name: '송지효', team: 'C팀', track: 'AI 솔루션 트랙', status: '정상', attendance: 73, lastAccess: '오늘' },
-  { id: 11, name: '백승호', team: 'D팀', track: '플랫폼 개발 트랙', status: '주의', attendance: 89, lastAccess: '오늘' },
-  { id: 12, name: '유나영', team: 'E팀', track: 'UI/UX 디자인 트랙', status: '정상', attendance: 82, lastAccess: '오늘' },
-  { id: 13, name: '전현무', team: 'C팀', track: '데이터 분석 트랙', status: '정상', attendance: 77, lastAccess: '오늘' },
-  { id: 14, name: '고아라', team: 'D팀', track: 'AI 솔루션 트랙', status: '주의', attendance: 68, lastAccess: '3일 전' },
-  { id: 15, name: '권율', team: 'E팀', track: '플랫폼 개발 트랙', status: '정상', attendance: 74, lastAccess: '오늘' },
-  { id: 16, name: '남주혁', team: 'C팀', track: 'UI/UX 디자인 트랙', status: '정상', attendance: 76, lastAccess: '오늘' },
-  { id: 17, name: '오연서', team: 'D팀', track: '데이터 분석 트랙', status: '주의', attendance: 60, lastAccess: '2일 전' },
-  { id: 18, name: '문채원', team: 'E팀', track: 'AI 솔루션 트랙', status: '정상', attendance: 85, lastAccess: '오늘' },
-  { id: 19, name: '안효섭', team: 'C팀', track: '플랫폼 개발 트랙', status: '정상', attendance: 71, lastAccess: '오늘' },
-  { id: 20, name: '신세경', team: 'D팀', track: 'UI/UX 디자인 트랙', status: '주의', attendance: 69, lastAccess: '1일 전' },
-];
+export const participants: Participant[] = [];
 
 export const assignments: Assignment[] = [
   {
