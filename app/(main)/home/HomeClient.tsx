@@ -11,9 +11,11 @@ const statusConfig = {
 } as const;
 
 // 활동지수 기반으로 상태 결정 (DB status 값보다 우선)
+// 0% → 미참여, 1~39% → 위험, 40~69% → 주의, 70%+ → 정상
 function deriveStatus(participationRate: number): keyof typeof statusConfig {
   if (participationRate === 0)  return '미참여';
-  if (participationRate < 50)   return '주의';
+  if (participationRate < 40)   return '위험';
+  if (participationRate < 70)   return '주의';
   return '정상';
 }
 
