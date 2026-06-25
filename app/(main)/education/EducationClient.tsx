@@ -287,8 +287,8 @@ export default function EducationClient({
         )
       )}
 
-      {/* ── 4가지 지표 대시보드 ── */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* ── 4가지 지표 대시보드 (참여자만) ── */}
+      {!isAdmin && <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-[#0047ab] text-white rounded-xl p-4 flex flex-col gap-2 shadow-sm col-span-2 md:col-span-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold opacity-80">전체 참여율</span>
@@ -345,7 +345,7 @@ export default function EducationClient({
           </div>
           <p className="text-xs text-[#737784]">멘토링 {stats.mentoring.total}개 중</p>
         </div>
-      </section>
+      </section>}
 
       {/* ── 항목 리스트 ── */}
       <section className="space-y-4">
