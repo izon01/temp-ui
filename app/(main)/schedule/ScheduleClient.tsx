@@ -85,7 +85,7 @@ export default function ScheduleClient({ year: initYear, month: initMonth, event
             className="w-9 h-9 rounded-full border border-[#c3c6d5] flex items-center justify-center hover:bg-[#f3f4f5] transition-colors">
             <span className="material-symbols-outlined text-[20px]">chevron_right</span>
           </button>
-          <button onClick={() => { setYear(initYear); setMonth(initMonth); }}
+          <button onClick={() => { setYear(initYear); setMonth(initMonth); setEditing(null); }}
             className="ml-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#c3c6d5] hover:bg-[#f3f4f5] transition-colors text-[#434653]">
             오늘
           </button>

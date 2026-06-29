@@ -8,12 +8,15 @@ async function ensureTable() {
   await sql`
     CREATE TABLE IF NOT EXISTS schedule_events (
       id         SERIAL PRIMARY KEY,
-      date       TEXT NOT NULL,
+      date       TEXT NOT NULL UNIQUE,
       text       TEXT NOT NULL DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
-  // one row per date — upsert pattern
+  // Add UNIQUE constraint for existing tables without it
+  try {
+    await sql`ALTER TABLE schedule_events ADD CONSTRAINT schedule_events_date_unique UNIQUE (date)`;
+  } catch { /* already exists */ }
 }
 
 export async function getScheduleEvents(year: number, month: number) {
@@ -43,9 +46,8 @@ export async function upsertScheduleEvent(date: string, text: string) {
       await sql`
         INSERT INTO schedule_events (date, text)
         VALUES (${date}, ${text})
-        ON CONFLICT DO NOTHING
+        ON CONFLICT (date) DO UPDATE SET text = EXCLUDED.text
       `;
-      await sql`UPDATE schedule_events SET text = ${text} WHERE date = ${date}`;
     }
     revalidatePath('/schedule');
     return { success: true };

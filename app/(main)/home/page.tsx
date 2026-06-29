@@ -18,7 +18,9 @@ export default async function HomePage() {
     getParticipantCount(),
     isAdmin
       ? getAssignmentSubmissionRate()
-      : getParticipantActivityStats(userId).then(s => s.overallRate),
+      : userId
+        ? getParticipantActivityStats(userId).then(s => s?.overallRate ?? 0)
+        : Promise.resolve(0),
     getNotices(),
   ]);
 

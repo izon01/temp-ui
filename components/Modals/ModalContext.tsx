@@ -21,7 +21,7 @@ export interface SelectedParticipant {
 export interface NoticeDetail {
   id: number; title: string; date: string; views: number;
   isPinned: boolean; category: string; icon: string;
-  content?: string; imageUrl?: string; fileName?: string;
+  content?: string; imageUrl?: string | null; fileName?: string | null;
 }
 
 type ModalType =

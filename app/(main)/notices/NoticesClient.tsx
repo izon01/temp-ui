@@ -174,7 +174,7 @@ export default function NoticesClient({ initialNotices }: Props) {
           paginated.map((n, idx) => (
             <div
               key={n.id}
-              onClick={() => openNoticeDetail(n as any)}
+              onClick={() => openNoticeDetail({ ...n, icon: n.icon ?? 'campaign', views: n.views ?? 0 })}
               className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < paginated.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
             >
               <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getIconBg(n.category, n.isPinned)}`}>
