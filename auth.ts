@@ -55,7 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const valid = await bcrypt.compare(password, user.password_hash as string);
           if (!valid) return null;
 
-          // 로그인 성공 시 마지막 접속 시간을 YYYY-MM-DD 텍스트로 저장
+          // 로그인 시 last_access를 YYYY-MM-DD로 갱신 ('오늘' 등 비정상 값도 덮어씀)
           await sql`UPDATE participants SET last_access = TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') WHERE id = ${user.id}`;
 
           return {
