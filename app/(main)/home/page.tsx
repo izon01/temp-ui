@@ -4,9 +4,11 @@ import { auth } from '@/auth';
 import { getParticipantCount, getParticipantsWithParticipationRate } from '@/actions/participants';
 import { getParticipantActivityStats, getAssignmentSubmissionRate } from '@/actions/assignments';
 import { getNotices } from '@/actions/notices';
+import { runMigrations } from '@/lib/migrations';
 import HomeClient from './HomeClient';
 
 export default async function HomePage() {
+  await runMigrations();
   const session = await auth();
   const userId  = session?.user?.id ?? '';
   const isAdmin = session?.user?.role === 'admin';
