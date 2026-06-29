@@ -123,7 +123,7 @@ export default function HomeClient({ participants, participantCount, avgParticip
           <img
             src="/img1.png"
             alt="경북청년인재스쿨 히어로 이미지"
-            style={{ height: '200px', width: 'auto', maxWidth: '260px' }}
+            style={{ height: '260px', width: 'auto', maxWidth: '320px' }}
             className="object-contain drop-shadow-md"
           />
         </div>
