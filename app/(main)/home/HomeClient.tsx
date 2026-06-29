@@ -36,6 +36,7 @@ interface Participant {
 interface PinnedNotice {
   id: number; title: string; date: string; views: number;
   isPinned: boolean; category: string; icon: string; content?: string;
+  imageUrl?: string | null; fileName?: string | null;
 }
 
 interface Props {

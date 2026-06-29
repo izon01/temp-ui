@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { upsertScheduleEvent } from '@/actions/schedule';
+import { upsertScheduleEvent, getScheduleEvents } from '@/actions/schedule';
 
 interface Event { date: string; text: string; }
 
@@ -26,13 +26,22 @@ export default function ScheduleClient({ year: initYear, month: initMonth, event
   const [saving, setSaving]   = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const goMonth = (delta: number) => {
+  const goMonth = async (delta: number) => {
     let m = month + delta;
     let y = year;
     if (m > 12) { m = 1; y++; }
     if (m < 1)  { m = 12; y--; }
     setMonth(m); setYear(y);
     setEditing(null);
+    // 해당 월 데이터 DB에서 재조회
+    try {
+      const rows = await getScheduleEvents(y, m);
+      setEvents(prev => {
+        const next = { ...prev };
+        for (const r of rows) next[r.date] = r.text;
+        return next;
+      });
+    } catch { /* 네트워크 오류 시 기존 캐시 유지 */ }
   };
 
   const daysInMonth = new Date(year, month, 0).getDate();

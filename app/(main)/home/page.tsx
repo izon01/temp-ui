@@ -29,7 +29,7 @@ export default async function HomePage() {
   const pinnedNotices = (allNotices ?? [])
     .sort((a, b) => b.date.localeCompare(a.date))   // 최신순
     .slice(0, 3)
-    .map(n => ({ id: n.id, title: n.title, date: n.date, views: n.views, isPinned: n.isPinned, category: n.category, icon: n.icon, content: n.content }));
+    .map(n => ({ id: n.id, title: n.title, date: n.date, views: n.views, isPinned: n.isPinned, category: n.category, icon: n.icon, content: n.content, imageUrl: n.imageUrl ?? null, fileName: n.fileName ?? null }));
 
   return (
     <HomeClient
