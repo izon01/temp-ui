@@ -7,10 +7,11 @@ import { useSession, signOut } from 'next-auth/react';
 import { useModal } from '../Modals/ModalContext';
 
 const navLinks = [
-  { href: '/home',      label: '홈' },
-  { href: '/education', label: '교육관리' },
-  { href: '/notices',   label: '공지사항' },
-  { href: '/community', label: '커뮤니티' },
+  { href: '/home',      label: '홈',      adminOnly: false },
+  { href: '/notices',   label: '공지사항', adminOnly: false },
+  { href: '/education', label: '교육관리', adminOnly: false },
+  { href: '/community', label: '커뮤니티', adminOnly: false },
+  { href: '/schedule',  label: '일정',     adminOnly: true  },
 ];
 
 export default function Header() {
@@ -40,7 +41,7 @@ export default function Header() {
             />
           </Link>
           <nav className="hidden md:flex items-center gap-6 h-full">
-            {navLinks.map(link => (
+            {navLinks.filter(l => !l.adminOnly || session?.user?.role === 'admin').map(link => (
               <Link
                 key={link.href}
                 href={link.href}
