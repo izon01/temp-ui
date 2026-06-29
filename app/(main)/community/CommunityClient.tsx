@@ -93,7 +93,7 @@ export default function CommunityClient({ initialPosts }: Props) {
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
       {/* Header */}
-      <header className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>커뮤니티</h1>
           <p className="text-[#434653] mt-1">인재스쿨 청년들과 자유롭게 이야기를 나눠보세요.</p>
@@ -106,6 +106,31 @@ export default function CommunityClient({ initialPosts }: Props) {
           글쓰기
         </button>
       </header>
+
+      {/* Hero Banner */}
+      <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff] mb-6">
+        <div className="flex flex-col justify-center gap-4">
+          <h2
+            className="text-3xl md:text-4xl font-extrabold text-[#191c1d] leading-tight"
+            style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}
+          >
+            혼자보다 함께 가면<br />더 멀리 성장합니다.
+          </h2>
+          <p className="text-[#434653] text-base md:text-lg leading-relaxed">
+            취업 준비 이야기부터 궁금한 점, 응원의 한마디까지<br className="hidden md:block" />
+            청년인재스쿨 참여자들과 자유롭게 소통해 보세요.
+          </p>
+        </div>
+        <div className="flex-shrink-0 flex justify-center md:justify-end">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/img3.png"
+            alt="커뮤니티 배너 이미지"
+            style={{ width: '220px', height: 'auto' }}
+            className="object-contain drop-shadow-md"
+          />
+        </div>
+      </section>
 
       {/* 전체 게시글 수 위젯 */}
       <div className="bg-[#e7e8e9] rounded-xl p-5 mb-6 flex items-center justify-between">
