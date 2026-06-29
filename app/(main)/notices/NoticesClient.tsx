@@ -98,28 +98,28 @@ export default function NoticesClient({ initialNotices }: Props) {
         )}
       </section>
 
-      {/* Bento top */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="md:col-span-2 bg-[#f3f4f5] rounded-xl p-6 flex flex-col justify-between overflow-hidden relative group min-h-[120px]">
-          <div className="z-10">
-            <span className="bg-[#00327d] text-white text-xs font-bold px-2 py-1 rounded-full mb-3 inline-block">
-              {searchQuery ? `검색: "${searchQuery}"` : activeFilter !== '전체' ? activeFilter : 'HOT NEWS'}
-            </span>
-            <h3 className="font-bold text-lg text-[#191c1d] mb-1" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-              {filtered[0]?.title ?? '등록된 공지가 없습니다'}
-            </h3>
-            <p className="text-[#434653] text-sm">지금 바로 지원하고 경북의 미래를 함께 만들어갈 기회를 잡으세요!</p>
-          </div>
-          <div className="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-[120px]" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
-          </div>
+      {/* Hero Banner */}
+      <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff] mb-6">
+        <div className="flex flex-col justify-center gap-4">
+          <h1
+            className="text-3xl md:text-4xl font-extrabold text-[#191c1d] leading-tight"
+            style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}
+          >
+            당신의 성장을 위한<br />새로운 소식!
+          </h1>
+          <p className="text-[#434653] text-base md:text-lg leading-relaxed">
+            공지사항부터 취업정보, 취업활동 양식까지<br className="hidden md:block" />
+            청년인재스쿨의 다양한 소식을 이곳에서 가장 먼저 만나보세요.
+          </p>
         </div>
-        <div className="bg-[#e7e8e9] rounded-xl p-6 flex flex-col justify-center items-center text-center">
-          <span className="text-[#434653] text-xs uppercase tracking-wider mb-1">
-            {searchQuery ? '검색 결과' : '전체 게시글'}
-          </span>
-          <span className="text-[40px] font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{filtered.length}</span>
-          <span className="text-[#737784] text-xs">{today}</span>
+        <div className="flex-shrink-0 flex justify-center md:justify-end">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/img2.png"
+            alt="공지사항 배너 이미지"
+            style={{ width: '220px', height: 'auto' }}
+            className="object-contain drop-shadow-md"
+          />
         </div>
       </section>
 
