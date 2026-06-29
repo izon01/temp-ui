@@ -117,7 +117,7 @@ export default function NoticesClient({ initialNotices }: Props) {
           <img
             src="/img2.png"
             alt="공지사항 배너 이미지"
-            style={{ width: '220px', height: 'auto' }}
+            style={{ height: '200px', width: 'auto', maxWidth: '260px' }}
             className="object-contain drop-shadow-md"
           />
         </div>

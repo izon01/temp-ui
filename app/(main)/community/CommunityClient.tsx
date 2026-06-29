@@ -126,7 +126,7 @@ export default function CommunityClient({ initialPosts }: Props) {
           <img
             src="/img3.png"
             alt="커뮤니티 배너 이미지"
-            style={{ width: '220px', height: 'auto' }}
+            style={{ height: '200px', width: 'auto', maxWidth: '260px' }}
             className="object-contain drop-shadow-md"
           />
         </div>
