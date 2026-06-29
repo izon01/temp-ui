@@ -19,6 +19,7 @@ export async function createNotice(formData: FormData) {
   const category = String(formData.get('category') ?? '공지사항').trim(); // 쉼표 구분 다중값
   const isPinned = formData.get('isPinned') === 'true';
   const imageUrl = formData.get('imageUrl') ? String(formData.get('imageUrl')) : null;
+  const fileName = formData.get('fileName') ? String(formData.get('fileName')) : null;
   const firstCat = category.split(',')[0].trim();
   const icon     = iconMap[firstCat] ?? 'campaign';
 
@@ -28,8 +29,8 @@ export async function createNotice(formData: FormData) {
   try {
     await ensureNoticesTable();
     await sql`
-      INSERT INTO notices (title, content, category, is_pinned, icon, image_url, author_id)
-      VALUES (${title}, ${content}, ${category}, ${isPinned}, ${icon}, ${imageUrl}, ${session.user.id})
+      INSERT INTO notices (title, content, category, is_pinned, icon, image_url, file_name, author_id)
+      VALUES (${title}, ${content}, ${category}, ${isPinned}, ${icon}, ${imageUrl}, ${fileName}, ${session.user.id})
     `;
 
     revalidatePath('/notices');
@@ -89,10 +90,12 @@ async function ensureNoticesTable() {
       icon       TEXT NOT NULL DEFAULT 'campaign',
       views      INTEGER NOT NULL DEFAULT 0,
       image_url  TEXT,
+      file_name  TEXT,
       author_id  TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE notices ADD COLUMN IF NOT EXISTS file_name TEXT`;
 }
 
 const fetchNotices = unstable_cache(
@@ -100,31 +103,64 @@ const fetchNotices = unstable_cache(
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
           FROM notices
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
           ORDER BY is_pinned DESC, created_at DESC
         `
       : await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
           FROM notices
           ORDER BY is_pinned DESC, created_at DESC
         `;
     return rows as Array<{
       id: number; title: string; content: string; category: string;
-      isPinned: boolean; icon: string; views: number; imageUrl: string | null; date: string;
+      isPinned: boolean; icon: string; views: number; imageUrl: string | null; fileName: string | null; date: string;
     }>;
   },
   ['notices'],
   { tags: ['notices'], revalidate: 60 }
 );
 
+const fetchNoticesCompat = unstable_cache(
+  async (query: string) => {
+    const rows = query
+      ? await sql`
+          SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
+                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+          FROM notices
+          WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
+          ORDER BY is_pinned DESC, created_at DESC
+        `
+      : await sql`
+          SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
+                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+          FROM notices
+          ORDER BY is_pinned DESC, created_at DESC
+        `;
+    return rows as Array<{
+      id: number; title: string; content: string; category: string;
+      isPinned: boolean; icon: string; views: number; imageUrl: string | null; fileName: string | null; date: string;
+    }>;
+  },
+  ['notices-compat'],
+  { tags: ['notices'], revalidate: 60 }
+);
+
 export async function getNotices(q?: string) {
+  const query = q?.trim() ?? '';
+  // Run migration before fetch so the column exists
+  try { await sql`ALTER TABLE notices ADD COLUMN IF NOT EXISTS file_name TEXT`; } catch { /* ignore */ }
   try {
-    return await fetchNotices(q?.trim() ?? '');
-  } catch (error) {
-    console.error('[getNotices]', error);
-    return null;
+    return await fetchNotices(query);
+  } catch {
+    // Fallback: column may not exist in cache context; retry without file_name
+    try {
+      return await fetchNoticesCompat(query);
+    } catch (error) {
+      console.error('[getNotices]', error);
+      return null;
+    }
   }
 }

@@ -7,55 +7,88 @@ import SlideOverBase from './SlideOverBase';
 import { createNotice } from '@/actions/notices';
 
 const CATEGORIES = ['필독', '공지사항', '취업정보', '취업활동양식', '기타'];
-const iconMap: Record<string, string> = {
-  '필독': 'notification_important', '공지사항': 'campaign',
-  '취업정보': 'work', '취업활동양식': 'description', '기타': 'info',
-};
 const MAX = 1000;
+const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4MB (Vercel 서버리스 body 한도 내)
+
+const ACCEPT = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+function fileTypeIcon(mime: string) {
+  if (mime.startsWith('image/'))       return 'image';
+  if (mime === 'application/pdf')      return 'picture_as_pdf';
+  return 'description';
+}
+
+function fileTypeLabel(mime: string) {
+  if (mime.startsWith('image/'))       return '이미지';
+  if (mime === 'application/pdf')      return 'PDF';
+  if (mime.includes('word'))           return 'Word';
+  return '파일';
+}
 
 export default function NoticeWriteSlideOver() {
   const { openModal, closeModal } = useModal();
   const { showToast } = useApp();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle]           = useState('');
+  const [content, setContent]       = useState('');
   const [categories, setCategories] = useState<string[]>(['공지사항']);
-  const [isPinned, setIsPinned] = useState(false);
-  const [imageBase64, setImageBase64] = useState('');
-  const [error, setError] = useState('');
+  const [isPinned, setIsPinned]     = useState(false);
+  const [fileData, setFileData]     = useState('');        // base64 dataURL
+  const [fileName, setFileName]     = useState('');
+  const [fileMime, setFileMime]     = useState('');
+  const [fileLoading, setFileLoading] = useState(false);
+  const [error, setError]           = useState('');
   const [isPending, startTransition] = useTransition();
-  const imageRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const toggleCategory = (cat: string) => {
-    setCategories(prev =>
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-    );
-  };
+  const toggleCategory = (cat: string) =>
+    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
 
   const reset = () => {
     setTitle(''); setContent(''); setCategories(['공지사항']);
-    setIsPinned(false); setImageBase64(''); setError('');
+    setIsPinned(false); setFileData(''); setFileName(''); setFileMime('');
+    setFileLoading(false); setError('');
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`파일 크기가 너무 큽니다. 최대 4MB까지 업로드 가능합니다.`);
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+
+    setError('');
+    setFileLoading(true);
+    setFileName(file.name);
+    setFileMime(file.type);
+
     const reader = new FileReader();
-    reader.onload = () => setImageBase64(reader.result as string);
+    reader.onload  = () => { setFileData(reader.result as string); setFileLoading(false); };
+    reader.onerror = () => { setError('파일 읽기 오류가 발생했습니다.'); setFileLoading(false); };
     reader.readAsDataURL(file);
+  };
+
+  const removeFile = () => {
+    setFileData(''); setFileName(''); setFileMime('');
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   const handleSubmit = () => {
     if (!title.trim() || !content.trim()) { setError('제목과 내용을 모두 입력해주세요.'); return; }
-    if (content.length > MAX) { setError(`내용은 ${MAX}자를 초과할 수 없습니다.`); return; }
+    if (content.length > MAX)             { setError(`내용은 ${MAX}자를 초과할 수 없습니다.`); return; }
+    if (categories.length === 0)          { setError('카테고리를 하나 이상 선택해주세요.'); return; }
     setError('');
+
     startTransition(async () => {
       const formData = new FormData();
-      if (categories.length === 0) { setError('카테고리를 하나 이상 선택해주세요.'); return; }
-      formData.append('title', title);
-      formData.append('content', content);
+      formData.append('title',    title);
+      formData.append('content',  content);
       formData.append('category', categories.join(','));
       formData.append('isPinned', String(isPinned));
-      if (imageBase64) formData.append('imageUrl', imageBase64);
+      if (fileData)  formData.append('imageUrl', fileData);
+      if (fileName)  formData.append('fileName', fileName);
 
       const result = await createNotice(formData);
       if (result.success) {
@@ -67,6 +100,8 @@ export default function NoticeWriteSlideOver() {
       }
     });
   };
+
+  const isImage = fileMime.startsWith('image/');
 
   return (
     <SlideOverBase isOpen={openModal === 'writeNotice'} onClose={() => { reset(); closeModal(); }} title="공지 등록">
@@ -80,7 +115,7 @@ export default function NoticeWriteSlideOver() {
             </div>
           )}
 
-          {/* 카테고리 (다중 선택) */}
+          {/* 카테고리 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-semibold text-[#434653]">카테고리 <span className="text-[#737784] font-normal">(복수 선택 가능)</span></label>
@@ -118,7 +153,7 @@ export default function NoticeWriteSlideOver() {
             />
           </div>
 
-          {/* 본문 + 글자 수 */}
+          {/* 내용 */}
           <div className="space-y-1">
             <label className="text-sm font-semibold text-[#434653]">내용</label>
             <textarea value={content} onChange={e => setContent(e.target.value)} maxLength={MAX}
@@ -131,31 +166,54 @@ export default function NoticeWriteSlideOver() {
             </div>
           </div>
 
-          {/* 이미지 첨부 */}
+          {/* 파일 첨부 */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#434653]">이미지 첨부 (선택)</label>
-            {imageBase64 ? (
-              <div className="relative rounded-xl overflow-hidden border border-[#c3c6d5]">
-                <img src={imageBase64} alt="미리보기" className="w-full object-cover max-h-48" />
-                <button
-                  type="button"
-                  onClick={() => { setImageBase64(''); if (imageRef.current) imageRef.current.value = ''; }}
-                  className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
+            <label className="text-sm font-semibold text-[#434653]">파일 첨부 <span className="text-[#737784] font-normal">(선택)</span></label>
+
+            {fileLoading ? (
+              <div className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-6 flex flex-col items-center gap-2 bg-[#f3f4f5]/50">
+                <span className="material-symbols-outlined text-[#00327d] text-[36px] animate-spin">progress_activity</span>
+                <p className="text-sm text-[#434653] font-semibold">업로드 중...</p>
+                <p className="text-xs text-[#737784]">{fileName}</p>
+              </div>
+            ) : fileData ? (
+              <div className="border border-[#c3c6d5] rounded-xl overflow-hidden">
+                {isImage ? (
+                  <div className="relative">
+                    <img src={fileData} alt="미리보기" className="w-full object-cover max-h-48" />
+                    <button type="button" onClick={removeFile}
+                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[#f3f4f5]">
+                    <span className="material-symbols-outlined text-[#0047ab] text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {fileTypeIcon(fileMime)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#191c1d] truncate">{fileName}</p>
+                      <p className="text-xs text-[#737784]">{fileTypeLabel(fileMime)} 파일 첨부됨</p>
+                    </div>
+                    <button type="button" onClick={removeFile}
+                      className="text-[#737784] hover:text-[#191c1d] transition-colors">
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div
-                onClick={() => imageRef.current?.click()}
+                onClick={() => fileRef.current?.click()}
                 className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-6 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]"
               >
-                <span className="material-symbols-outlined text-[#00327d] text-[36px]">add_photo_alternate</span>
-                <p className="text-sm text-[#434653] font-semibold">클릭하여 이미지 선택</p>
-                <p className="text-xs text-[#737784]">JPG, PNG, GIF (최대 5MB)</p>
+                <span className="material-symbols-outlined text-[#00327d] text-[36px]">attach_file</span>
+                <p className="text-sm text-[#434653] font-semibold">클릭하여 파일 선택</p>
+                <p className="text-xs text-[#737784]">이미지 (JPG·PNG·GIF) · PDF · Word (DOC·DOCX) · 최대 4MB</p>
               </div>
             )}
-            <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+
+            <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={handleFileChange} />
           </div>
 
           {/* 필독 고정 */}
@@ -171,7 +229,7 @@ export default function NoticeWriteSlideOver() {
 
         {/* 등록 버튼 */}
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-[#e1e3e4]">
-          <button onClick={handleSubmit} disabled={isPending || !title.trim() || !content.trim()}
+          <button onClick={handleSubmit} disabled={isPending || fileLoading || !title.trim() || !content.trim()}
             className="w-full bg-[#0047ab] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50"
           >
             {isPending

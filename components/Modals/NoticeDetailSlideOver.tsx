@@ -137,9 +137,26 @@ export default function NoticeDetailSlideOver() {
             {!editMode ? (
               <>
                 {selectedNotice.imageUrl && (
-                  <div className="mb-6 rounded-xl overflow-hidden border border-[#e1e3e4]">
-                    <img src={selectedNotice.imageUrl} alt="첨부 이미지" className="w-full object-cover max-h-80" />
-                  </div>
+                  selectedNotice.imageUrl.startsWith('data:image') ? (
+                    <div className="mb-6 rounded-xl overflow-hidden border border-[#e1e3e4]">
+                      <img src={selectedNotice.imageUrl} alt="첨부 이미지" className="w-full object-cover max-h-80" />
+                    </div>
+                  ) : (
+                    <a
+                      href={selectedNotice.imageUrl}
+                      download={selectedNotice.fileName ?? '첨부파일'}
+                      className="mb-6 flex items-center gap-3 px-4 py-3 bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl hover:bg-[#e7e8e9] transition-colors group"
+                    >
+                      <span className="material-symbols-outlined text-[#0047ab] text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {selectedNotice.fileName?.endsWith('.pdf') ? 'picture_as_pdf' : 'description'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[#191c1d] truncate">{selectedNotice.fileName ?? '첨부파일'}</p>
+                        <p className="text-xs text-[#737784]">클릭하여 다운로드</p>
+                      </div>
+                      <span className="material-symbols-outlined text-[#737784] group-hover:text-[#0047ab] transition-colors">download</span>
+                    </a>
+                  )
                 )}
                 <div className="text-[#434653] leading-relaxed whitespace-pre-wrap text-[15px]">
                   {selectedNotice.content ?? '내용이 없습니다.'}

@@ -10,6 +10,7 @@ import { useApp } from '@/contexts/AppContext';
 interface Notice {
   id: number; title: string; category: string;
   isPinned: boolean; icon: string; views: number; date: string;
+  content?: string; imageUrl?: string | null; fileName?: string | null;
 }
 
 interface Props {
