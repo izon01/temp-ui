@@ -3,12 +3,14 @@
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
+import SlideOverBase from '@/components/Modals/SlideOverBase';
 import {
   createSupportRequest, deleteSupportRequest, updateSupportStatus,
   getSupportComments, addSupportComment, deleteSupportComment,
 } from '@/actions/support';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_CONTENT = 2000;
 const ACCEPTED = '.jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.hwp,.hwpx';
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
@@ -28,7 +30,6 @@ interface Comment {
   id: number; authorName: string; authorId: string; content: string;
   fileUrl: string | null; fileName: string | null; createdAt: string;
 }
-
 interface Props {
   initialRequests: Request[];
   isAdmin: boolean;
@@ -51,7 +52,7 @@ function FileAttachment({ url, name }: { url: string; name: string | null }) {
       onClick={e => e.stopPropagation()}
     >
       <span className="material-symbols-outlined text-[#0047ab] text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-        {name?.endsWith('.pdf') ? 'picture_as_pdf' : name?.match(/\.hwpx?$/i) ? 'description' : 'description'}
+        {name?.endsWith('.pdf') ? 'picture_as_pdf' : 'description'}
       </span>
       <span className="flex-1 text-sm font-semibold text-[#191c1d] truncate">{name ?? '첨부파일'}</span>
       <span className="material-symbols-outlined text-[#737784] group-hover:text-[#0047ab] transition-colors text-[18px]">download</span>
@@ -59,14 +60,15 @@ function FileAttachment({ url, name }: { url: string; name: string | null }) {
   );
 }
 
-function FileUploadInput({ onFile, onClear, fileName }: {
+function FileUploadInput({ onFile, onClear, fileName, compact }: {
   onFile: (url: string, name: string) => void;
   onClear: () => void;
   fileName: string | null;
+  compact?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) { alert('파일 크기는 최대 5MB입니다.'); return; }
@@ -78,14 +80,14 @@ function FileUploadInput({ onFile, onClear, fileName }: {
   return (
     <div>
       {fileName ? (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#f3f4f5] rounded-xl border border-[#c3c6d5] text-sm">
-          <span className="material-symbols-outlined text-[#0047ab] text-[18px]">attach_file</span>
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#dae2ff] border border-[#00327d]/20 rounded-xl text-sm">
+          <span className="material-symbols-outlined text-[#00327d] text-[18px]">attach_file</span>
           <span className="flex-1 truncate text-[#191c1d] font-semibold">{fileName}</span>
-          <button onClick={onClear} className="text-[#737784] hover:text-[#E63946]">
+          <button onClick={onClear} className="text-[#737784] hover:text-[#E63946] transition-colors">
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
-      ) : (
+      ) : compact ? (
         <button onClick={() => ref.current?.click()}
           className="flex items-center gap-2 px-4 py-2 bg-white border border-dashed border-[#c3c6d5] rounded-xl text-sm text-[#737784] hover:border-[#00327d] hover:text-[#00327d] transition-colors"
           disabled={loading}
@@ -93,6 +95,14 @@ function FileUploadInput({ onFile, onClear, fileName }: {
           <span className="material-symbols-outlined text-[18px]">{loading ? 'hourglass_empty' : 'attach_file'}</span>
           {loading ? '파일 로딩 중...' : '파일 첨부 (최대 5MB)'}
         </button>
+      ) : (
+        <div onClick={() => ref.current?.click()}
+          className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]"
+        >
+          <span className="material-symbols-outlined text-[#00327d] text-[40px]">upload_file</span>
+          <p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p>
+          <p className="text-sm text-[#434653]">JPG·PNG·GIF·PDF·DOC·HWP·HWPX (최대 5MB)</p>
+        </div>
       )}
       <input ref={ref} type="file" accept={ACCEPTED} className="hidden" onChange={handleChange} />
     </div>
@@ -112,10 +122,11 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
   const router = useRouter();
 
   // Write form state
-  const [wTitle, setWTitle]   = useState('');
+  const [wTitle, setWTitle]     = useState('');
   const [wContent, setWContent] = useState('');
   const [wFileUrl, setWFileUrl]   = useState<string | null>(null);
   const [wFileName, setWFileName] = useState<string | null>(null);
+  const [wError, setWError]     = useState('');
 
   // Comment form state
   const [cContent, setCContent] = useState('');
@@ -138,8 +149,14 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
     setCommentsLoading(false);
   };
 
+  const resetWrite = () => {
+    setWTitle(''); setWContent(''); setWFileUrl(null); setWFileName(null); setWError('');
+  };
+
   const handleSubmitWrite = () => {
-    if (!wTitle.trim() || !wContent.trim()) { showToast('제목과 내용을 입력해주세요.'); return; }
+    if (!wTitle.trim() || !wContent.trim()) { setWError('제목과 내용을 입력해주세요.'); return; }
+    if (wContent.length > MAX_CONTENT) { setWError(`내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.`); return; }
+    setWError('');
     startTransition(async () => {
       const fd = new FormData();
       fd.append('title', wTitle.trim());
@@ -148,12 +165,12 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
       if (wFileName) fd.append('fileName', wFileName);
       const result = await createSupportRequest(fd);
       if (result.success) {
-        showToast('제출되었습니다.');
+        showToast('서류가 제출되었습니다 ✓');
+        resetWrite();
         setShowWrite(false);
-        setWTitle(''); setWContent(''); setWFileUrl(null); setWFileName(null);
         router.refresh();
       } else {
-        showToast(result.error ?? '오류가 발생했습니다.');
+        setWError(result.error ?? '오류가 발생했습니다.');
       }
     });
   };
@@ -229,7 +246,6 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         </button>
 
         <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] p-6 md:p-8 mb-6">
-          {/* Status + actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${cfg.bg} ${cfg.text}`}>
@@ -239,8 +255,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               {isAdmin && (
                 <div className="flex gap-1">
                   {STATUS_LIST.filter(s => s !== selected.status).map(s => (
-                    <button key={s} onClick={() => handleStatusChange(s)}
-                      disabled={isPending}
+                    <button key={s} onClick={() => handleStatusChange(s)} disabled={isPending}
                       className={`text-xs px-2 py-1 rounded-full border font-semibold transition-colors hover:opacity-90 ${statusCfg(s).bg} ${statusCfg(s).text} disabled:opacity-50`}>
                       → {s}
                     </button>
@@ -284,7 +299,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
             <div className="space-y-4 mb-6">
               {comments.map(c => {
                 const canDelC = isAdmin || c.authorId === currentUserId;
-                const isAdminComment = c.authorId === 'admin' || (c.authorName === '관리자' || c.authorName.includes('관리자'));
+                const isAdminComment = c.authorId === 'admin' || c.authorName.includes('관리자');
                 return (
                   <div key={c.id} className={`rounded-xl p-4 ${isAdminComment ? 'bg-[#eef2ff] border border-[#dae2ff]' : 'bg-[#f8f9fa] border border-[#e1e3e4]'}`}>
                     <div className="flex items-center justify-between mb-2">
@@ -309,17 +324,15 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
             </div>
           )}
 
-          {/* Comment input */}
           <div className="border-t border-[#e1e3e4] pt-5">
             <textarea
-              value={cContent}
-              onChange={e => setCContent(e.target.value)}
+              value={cContent} onChange={e => setCContent(e.target.value)}
               placeholder="댓글을 입력하세요..."
               rows={3}
               className="w-full border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00327d] resize-none mb-3"
             />
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <FileUploadInput
+              <FileUploadInput compact
                 onFile={(url, name) => { setCFileUrl(url); setCFileName(name); }}
                 onClear={() => { setCFileUrl(null); setCFileName(null); }}
                 fileName={cFileName}
@@ -336,113 +349,52 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
     );
   }
 
-  // ── Write Panel ──
-  if (showWrite) {
-    return (
-      <div className="max-w-[800px] mx-auto px-4 md:px-6 py-10">
-        <button onClick={() => setShowWrite(false)}
-          className="flex items-center gap-1 text-sm font-semibold text-[#434653] hover:text-[#00327d] mb-6 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          목록으로 돌아가기
-        </button>
-        <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] p-6 md:p-8">
-          <h2 className="text-xl font-bold text-[#191c1d] mb-6" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-            서류 제출
-          </h2>
-          <div className="space-y-5">
-            <div>
-              <label className="text-sm font-bold text-[#191c1d] block mb-1">제목</label>
-              <input value={wTitle} onChange={e => setWTitle(e.target.value)}
-                placeholder="제목을 입력해주세요"
-                className="w-full border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00327d]" />
-            </div>
-            <div>
-              <label className="text-sm font-bold text-[#191c1d] block mb-1">내용</label>
-              <textarea value={wContent} onChange={e => setWContent(e.target.value)}
-                placeholder="내용을 입력해주세요 (최대 2,000자)"
-                rows={8}
-                className="w-full border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00327d] resize-none" />
-              <p className="text-xs text-[#737784] text-right mt-1">{wContent.length}/2000</p>
-            </div>
-            <div>
-              <label className="text-sm font-bold text-[#191c1d] block mb-2">
-                파일 첨부 <span className="font-normal text-[#737784]">(선택 · JPG·PNG·GIF·PDF·DOC·HWP · 최대 5MB)</span>
-              </label>
-              <FileUploadInput
-                onFile={(url, name) => { setWFileUrl(url); setWFileName(name); }}
-                onClear={() => { setWFileUrl(null); setWFileName(null); }}
-                fileName={wFileName}
-              />
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowWrite(false)}
-                className="flex-1 py-3 rounded-xl border border-[#e1e3e4] text-sm font-bold text-[#434653] hover:bg-[#f3f4f5] transition-colors">
-                취소
-              </button>
-              <button onClick={handleSubmitWrite} disabled={isPending || !wTitle.trim() || !wContent.trim()}
-                className="flex-1 py-3 rounded-xl bg-[#00327d] text-white text-sm font-bold hover:bg-[#0047ab] transition-colors disabled:opacity-50 active:scale-95">
-                {isPending ? '제출 중...' : '제출하기'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // ── List Panel ──
   return (
-    <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
-      {/* Header */}
-      <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>지원금관리</h1>
-          <p className="text-[#434653] mt-1">서류를 제출하고 검토 현황을 확인하세요.</p>
-        </div>
-        {!isAdmin && (
-          <button onClick={() => setShowWrite(true)}
-            className="hidden md:flex items-center gap-2 bg-[#00327d] text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:bg-[#0047ab] transition-all active:scale-95">
-            <span className="material-symbols-outlined">upload_file</span>
-            서류 제출
-          </button>
-        )}
-      </header>
-
-      {/* Hero Banner */}
-      <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff] mb-6">
-        <div className="flex flex-col justify-center gap-4">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-[#191c1d] leading-tight" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-            {isAdmin ? '참여자 서류를\n한눈에 관리하세요.' : '서류를 제출하고\n검토 결과를 확인하세요.'}
-          </h2>
-          <p className="text-[#434653] text-base md:text-lg leading-relaxed">
-            {isAdmin
-              ? '참여자별 제출 서류를 검토하고 승인 현황을 관리할 수 있습니다.'
-              : '지원금 관련 서류를 제출하고 담당자의 피드백을 받아보세요.'}
-          </p>
-        </div>
-        <div className="flex-shrink-0 flex justify-center md:justify-end">
-          <span className="material-symbols-outlined text-[#00327d] opacity-20" style={{ fontSize: '160px', fontVariationSettings: "'FILL' 1" }}>
-            folder_managed
-          </span>
-        </div>
-      </section>
-
-      {/* Stats + Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="bg-[#e7e8e9] rounded-xl p-5 flex items-center justify-between md:w-56 flex-shrink-0">
+    <>
+      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
+        {/* Header */}
+        <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[#434653] text-xs uppercase tracking-wider mb-0.5">전체 제출</p>
-            <p className="text-3xl font-bold text-[#00327d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{filtered.length}</p>
+            <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>지원금관리</h1>
+            <p className="text-[#434653] mt-1">서류를 제출하고 검토 현황을 확인하세요.</p>
           </div>
-          <span className="material-symbols-outlined text-[36px] text-[#c3c6d5]" style={{ fontVariationSettings: "'FILL' 1" }}>folder</span>
-        </div>
-        <div className="flex-1 flex flex-col md:flex-row gap-3">
+          {!isAdmin && (
+            <button onClick={() => setShowWrite(true)}
+              className="hidden md:flex items-center gap-2 bg-[#00327d] text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:bg-[#0047ab] transition-all active:scale-95">
+              <span className="material-symbols-outlined">upload_file</span>
+              서류 제출
+            </button>
+          )}
+        </header>
+
+        {/* Hero Banner */}
+        <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff] mb-6">
+          <div className="flex flex-col justify-center gap-4">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#191c1d] leading-tight" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+              {isAdmin ? '참여자 서류를\n한눈에 관리하세요.' : '서류를 제출하고\n검토 결과를 확인하세요.'}
+            </h2>
+            <p className="text-[#434653] text-base md:text-lg leading-relaxed">
+              {isAdmin
+                ? '참여자별 제출 서류를 검토하고 승인 현황을 관리할 수 있습니다.'
+                : '지원금 관련 서류를 제출하고 담당자의 피드백을 받아보세요.'}
+            </p>
+          </div>
+          <div className="flex-shrink-0 flex justify-center md:justify-end">
+            <span className="material-symbols-outlined text-[#00327d] opacity-20" style={{ fontSize: '160px', fontVariationSettings: "'FILL' 1" }}>
+              folder_managed
+            </span>
+          </div>
+        </section>
+
+        {/* Search & filter row */}
+        <div className="flex flex-col md:flex-row gap-3 mb-3">
           {/* Search */}
           <div className="relative flex-1">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784]">search</span>
-            <input value={searchQuery} onChange={e => { setSearchQuery(e.target.value); }}
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               placeholder="제목으로 검색"
-              className="w-full bg-white border border-[#c3c6d5] focus:border-[#00327d] rounded-xl pl-12 pr-10 py-3 outline-none transition-all text-sm"
+              className="w-full bg-white border border-[#c3c6d5] focus:border-[#00327d] rounded-lg pl-12 pr-10 py-3 outline-none transition-all text-sm"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737784] hover:text-[#191c1d]">
@@ -450,78 +402,146 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               </button>
             )}
           </div>
-          {/* Admin participant filter */}
+          {/* Admin participant filter — pill style */}
           {isAdmin && (
-            <select value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)}
-              className="bg-white border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm font-semibold text-[#434653] outline-none focus:border-[#00327d] min-w-[160px]">
-              {authorNames.map(n => <option key={n} value={n}>{n === '전체' ? '👤 전체 참여자' : n}</option>)}
-            </select>
+            <div className="flex gap-2 overflow-x-auto pb-1 flex-shrink-0">
+              {authorNames.map(n => (
+                <button key={n} onClick={() => setFilterAuthor(n)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                    filterAuthor === n ? 'bg-[#00327d] text-white' : 'bg-[#e7e8e9] text-[#434653] hover:bg-[#edeeef]'
+                  }`}>
+                  {n === '전체' ? '전체 참여자' : n}
+                </button>
+              ))}
+            </div>
           )}
         </div>
+        {/* Count text */}
+        <p className="text-xs text-[#737784] mb-4">총 제출 건수: <span className="font-semibold text-[#434653]">{filtered.length}건</span></p>
+
+        {/* List */}
+        {filtered.length === 0 ? (
+          <div className="py-20 text-center text-[#737784]">
+            <span className="material-symbols-outlined text-[48px] block mb-2">folder_open</span>
+            <p className="font-semibold">제출된 서류가 없습니다.</p>
+            {!isAdmin && <p className="text-sm mt-1">상단의 &apos;서류 제출&apos; 버튼을 눌러 제출해 보세요.</p>}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] overflow-hidden">
+            {filtered.map((req, idx) => {
+              const cfg = statusCfg(req.status);
+              const canDel = isAdmin || req.authorId === currentUserId;
+              return (
+                <div key={req.id}
+                  onClick={() => openDetail(req)}
+                  className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f8f9ff] transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''}`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#dae2ff] flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[#00327d] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5 ${cfg.bg} ${cfg.text}`}>
+                        <span className="material-symbols-outlined text-[12px]">{cfg.icon}</span>
+                        {req.status}
+                      </span>
+                      {req.fileUrl && (
+                        <span className="text-xs text-[#0047ab] flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-[12px]">attach_file</span>첨부
+                        </span>
+                      )}
+                      <span className="font-semibold text-[#191c1d] truncate">{req.title}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-[#737784]">
+                      {isAdmin && <span className="font-semibold text-[#434653]">{req.authorName}</span>}
+                      <span>{req.date}</span>
+                      <span className="flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[12px]">chat_bubble</span>
+                        {req.comments}
+                      </span>
+                    </div>
+                  </div>
+                  {canDel && (
+                    <button onClick={e => { e.stopPropagation(); handleDelete(req); }} disabled={isPending}
+                      className="flex-shrink-0 bg-[#E63946] text-white text-xs px-3 py-1 rounded-lg font-bold hover:opacity-90 transition-all disabled:opacity-50">
+                      삭제
+                    </button>
+                  )}
+                  <span className="material-symbols-outlined text-[#737784] hidden md:block">chevron_right</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Mobile FAB */}
+        {!isAdmin && (
+          <button onClick={() => setShowWrite(true)}
+            className="md:hidden fixed bottom-20 right-4 bg-[#00327d] text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform">
+            <span className="material-symbols-outlined text-[28px]">upload_file</span>
+          </button>
+        )}
       </div>
 
-      {/* List */}
-      {filtered.length === 0 ? (
-        <div className="py-20 text-center text-[#737784]">
-          <span className="material-symbols-outlined text-[48px] block mb-2">folder_open</span>
-          <p className="font-semibold">제출된 서류가 없습니다.</p>
-          {!isAdmin && <p className="text-sm mt-1">상단의 &apos;서류 제출&apos; 버튼을 눌러 제출해 보세요.</p>}
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] overflow-hidden">
-          {filtered.map((req, idx) => {
-            const cfg = statusCfg(req.status);
-            const canDel = isAdmin || req.authorId === currentUserId;
-            return (
-              <div key={req.id}
-                onClick={() => openDetail(req)}
-                className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f8f9ff] transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''}`}
-              >
-                <div className="w-10 h-10 rounded-full bg-[#dae2ff] flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-[#00327d] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5 ${cfg.bg} ${cfg.text}`}>
-                      <span className="material-symbols-outlined text-[12px]">{cfg.icon}</span>
-                      {req.status}
-                    </span>
-                    {req.fileUrl && (
-                      <span className="text-xs text-[#0047ab] flex items-center gap-0.5">
-                        <span className="material-symbols-outlined text-[12px]">attach_file</span>첨부
-                      </span>
-                    )}
-                    <span className="font-semibold text-[#191c1d] truncate">{req.title}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-[#737784]">
-                    {isAdmin && <span className="font-semibold text-[#434653]">{req.authorName}</span>}
-                    <span>{req.date}</span>
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-[12px]">chat_bubble</span>
-                      {req.comments}
-                    </span>
-                  </div>
-                </div>
-                {canDel && (
-                  <button onClick={e => { e.stopPropagation(); handleDelete(req); }} disabled={isPending}
-                    className="flex-shrink-0 bg-[#E63946] text-white text-xs px-3 py-1 rounded-lg font-bold hover:opacity-90 transition-all disabled:opacity-50">
-                    삭제
-                  </button>
-                )}
-                <span className="material-symbols-outlined text-[#737784] hidden md:block">chevron_right</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* ── Write Slide-Over ── */}
+      <SlideOverBase isOpen={showWrite} onClose={() => { resetWrite(); setShowWrite(false); }} title="서류 제출">
+        <div className="flex flex-col min-h-[70vh] md:min-h-0 md:h-full">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-28">
 
-      {/* Mobile FAB */}
-      {!isAdmin && (
-        <button onClick={() => setShowWrite(true)}
-          className="md:hidden fixed bottom-20 right-4 bg-[#00327d] text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform">
-          <span className="material-symbols-outlined text-[28px]">upload_file</span>
-        </button>
-      )}
-    </div>
+            {wError && (
+              <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">error</span>
+                {wError}
+              </div>
+            )}
+
+            {/* 제목 */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-[#434653]">제목</label>
+              <input type="text" value={wTitle} onChange={e => setWTitle(e.target.value)}
+                placeholder="제목을 입력해 주세요"
+                className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-4 text-lg focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all"
+              />
+            </div>
+
+            {/* 내용 */}
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-[#434653]">내용</label>
+              <textarea value={wContent} onChange={e => setWContent(e.target.value)} maxLength={MAX_CONTENT}
+                placeholder="내용을 입력해 주세요."
+                rows={8}
+                className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all resize-none"
+              />
+              <div className={`flex justify-end text-xs ${wContent.length >= MAX_CONTENT ? 'text-[#b7102a] font-bold' : 'text-[#737784]'}`}>
+                {wContent.length}/{MAX_CONTENT}
+              </div>
+            </div>
+
+            {/* 파일 첨부 */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-[#434653]">
+                파일 첨부 <span className="font-normal text-[#737784]">(선택)</span>
+              </label>
+              <FileUploadInput
+                onFile={(url, name) => { setWFileUrl(url); setWFileName(name); }}
+                onClear={() => { setWFileUrl(null); setWFileName(null); }}
+                fileName={wFileName}
+              />
+            </div>
+          </div>
+
+          {/* 제출 버튼 — 커뮤니티 '등록 완료' 동일 디자인 */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-[#e1e3e4]">
+            <button onClick={handleSubmitWrite} disabled={isPending || !wTitle.trim() || !wContent.trim()}
+              className="w-full bg-[#0047ab] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50">
+              {isPending
+                ? <><span className="material-symbols-outlined animate-spin">progress_activity</span>제출 중...</>
+                : <><span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>제출 완료</>
+              }
+            </button>
+          </div>
+        </div>
+      </SlideOverBase>
+    </>
   );
 }
