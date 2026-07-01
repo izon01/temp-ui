@@ -101,7 +101,7 @@ export default function WritePostSlideOver() {
             <input
               ref={fileRef}
               type="file"
-              accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+              accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.hwpx"
               className="hidden"
               onChange={e => {
                 const file = e.target.files?.[0] ?? null;

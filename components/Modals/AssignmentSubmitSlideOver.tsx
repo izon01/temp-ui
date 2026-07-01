@@ -186,7 +186,7 @@ export default function AssignmentSubmitSlideOver() {
                       : <><p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p><p className="text-sm text-[#434653]">PDF, DOCX, PPTX, ZIP (최대 50MB)</p></>
                     }
                   </div>
-                  <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.pptx,.zip,.hwp" />
+                  <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.pptx,.zip,.hwp,.hwpx" />
                 </div>
 
                 <div className="flex items-center gap-3 text-[#737784] text-sm">
