@@ -192,11 +192,18 @@ export async function updateSupportRequest(formData: FormData) {
 
   try {
     const isAdmin = session.user.role === 'admin';
-    const where = isAdmin ? sql`id = ${id}` : sql`id = ${id} AND author_id = ${session.user.id}`;
-    if (clearFile || fileUrl) {
-      await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE ${where}`;
+    if (isAdmin) {
+      if (clearFile || fileUrl) {
+        await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE id=${id}`;
+      } else {
+        await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE id=${id}`;
+      }
     } else {
-      await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE ${where}`;
+      if (clearFile || fileUrl) {
+        await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE id=${id} AND author_id=${session.user.id}`;
+      } else {
+        await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE id=${id} AND author_id=${session.user.id}`;
+      }
     }
     revalidatePath('/support');
     return { success: true };
