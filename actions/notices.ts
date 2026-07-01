@@ -103,14 +103,14 @@ const fetchNotices = unstable_cache(
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
           ORDER BY is_pinned DESC, created_at DESC
         `
       : await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           ORDER BY is_pinned DESC, created_at DESC
         `;
@@ -128,14 +128,14 @@ const fetchNoticesCompat = unstable_cache(
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
           ORDER BY is_pinned DESC, created_at DESC
         `
       : await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at, 'YYYY.MM.DD') AS date
+                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           ORDER BY is_pinned DESC, created_at DESC
         `;

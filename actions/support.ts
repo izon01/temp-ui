@@ -83,7 +83,7 @@ export async function getSupportRequests() {
           SELECT r.id, r.title, r.content,
                  r.author_id AS "authorId", r.author_name AS "authorName",
                  r.status, r.file_url AS "fileUrl", r.file_name AS "fileName",
-                 r.comments, TO_CHAR(r.created_at, 'YYYY-MM-DD') AS date,
+                 r.comments, TO_CHAR(r.created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS date,
                  (
                    r.last_comment_at IS NOT NULL AND
                    (v.last_viewed_at IS NULL OR r.last_comment_at > v.last_viewed_at)
@@ -96,7 +96,7 @@ export async function getSupportRequests() {
           SELECT r.id, r.title, r.content,
                  r.author_id AS "authorId", r.author_name AS "authorName",
                  r.status, r.file_url AS "fileUrl", r.file_name AS "fileName",
-                 r.comments, TO_CHAR(r.created_at, 'YYYY-MM-DD') AS date,
+                 r.comments, TO_CHAR(r.created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS date,
                  (
                    r.last_comment_at IS NOT NULL AND
                    (v.last_viewed_at IS NULL OR r.last_comment_at > v.last_viewed_at)
@@ -231,7 +231,7 @@ export async function getSupportComments(requestId: number) {
     const rows = await sql`
       SELECT id, author_name AS "authorName", author_id AS "authorId", content,
              file_url AS "fileUrl", file_name AS "fileName",
-             TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS "createdAt"
+             TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') AS "createdAt"
       FROM support_comments
       WHERE request_id = ${requestId}
       ORDER BY created_at ASC

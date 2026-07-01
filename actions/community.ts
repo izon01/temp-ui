@@ -12,7 +12,7 @@ const fetchCommunityPosts = unstable_cache(
       ? await sql`
           SELECT id, category, title, content, author_name AS "authorName",
                  has_image AS "hasImage", image_url AS "imageUrl", comments,
-                 TO_CHAR(created_at, 'YYYY-MM-DD') AS date
+                 TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS date
           FROM community_posts
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
           ORDER BY created_at DESC
@@ -20,7 +20,7 @@ const fetchCommunityPosts = unstable_cache(
       : await sql`
           SELECT id, category, title, content, author_name AS "authorName",
                  has_image AS "hasImage", image_url AS "imageUrl", comments,
-                 TO_CHAR(created_at, 'YYYY-MM-DD') AS date
+                 TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS date
           FROM community_posts
           ORDER BY created_at DESC
         `;
@@ -109,7 +109,7 @@ export async function getPostComments(postId: number) {
   try {
     const rows = await sql`
       SELECT id, author_name AS "authorName", content,
-             TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS "createdAt"
+             TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') AS "createdAt"
       FROM post_comments
       WHERE post_id = ${postId}
       ORDER BY created_at ASC

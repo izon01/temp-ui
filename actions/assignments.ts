@@ -68,7 +68,7 @@ export async function getMySubmission(assignmentId: number) {
   try {
     const rows = await sql`
       SELECT link, file_name AS "fileName", file_data AS "fileData", content,
-             TO_CHAR(submitted_at, 'YYYY-MM-DD HH24:MI') AS "submittedAt"
+             TO_CHAR(submitted_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') AS "submittedAt"
       FROM assignment_submissions
       WHERE assignment_id = ${assignmentId} AND participant_id = ${session.user.id}
       LIMIT 1
