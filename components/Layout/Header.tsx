@@ -7,11 +7,12 @@ import { useSession, signOut } from 'next-auth/react';
 import { useModal } from '../Modals/ModalContext';
 
 const navLinks = [
-  { href: '/home',      label: '홈',      adminOnly: false },
-  { href: '/notices',   label: '공지사항', adminOnly: false },
-  { href: '/education', label: '교육관리', adminOnly: false },
-  { href: '/community', label: '커뮤니티', adminOnly: false },
-  { href: '/schedule',  label: '일정',     adminOnly: true  },
+  { href: '/home',      label: '홈',       adminOnly: false },
+  { href: '/notices',   label: '공지사항',  adminOnly: false },
+  { href: '/education', label: '교육관리',  adminOnly: false },
+  { href: '/community', label: '커뮤니티',  adminOnly: false },
+  { href: '/support',   label: '지원금관리', adminOnly: false },
+  { href: '/schedule',  label: '일정',      adminOnly: true  },
 ];
 
 export default function Header() {

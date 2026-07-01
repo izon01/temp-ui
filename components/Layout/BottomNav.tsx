@@ -8,8 +8,9 @@ const tabs = [
   { href: '/home',      label: '홈',      icon: 'home',        adminOnly: false },
   { href: '/notices',   label: '공지사항', icon: 'campaign',    adminOnly: false },
   { href: '/education', label: '교육관리', icon: 'school',      adminOnly: false },
-  { href: '/community', label: '커뮤니티', icon: 'chat_bubble', adminOnly: false },
-  { href: '/schedule',  label: '일정',     icon: 'calendar_month', adminOnly: true },
+  { href: '/community', label: '커뮤니티',  icon: 'chat_bubble',    adminOnly: false },
+  { href: '/support',   label: '지원금관리', icon: 'attach_money',  adminOnly: false },
+  { href: '/schedule',  label: '일정',      icon: 'calendar_month', adminOnly: true  },
 ];
 
 export default function BottomNav() {
