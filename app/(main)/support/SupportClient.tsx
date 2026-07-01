@@ -673,10 +673,9 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                 )}
 
                 {/* 댓글 — 편집 모드에서는 숨김 */}
-                {editMode && <div className="border-t border-[#e1e3e4]" />}
-                {!editMode && <div className="border-t border-[#e1e3e4]" />
+                <div className="border-t border-[#e1e3e4]" />
 
-                {/* 댓글 목록 — 편집 모드에서는 숨김 */}
+                {/* 댓글 목록 + 입력 — 편집 모드에서는 숨김 */}
                 <div className={editMode ? 'hidden' : ''}>
                   <h3 className="font-bold text-[#191c1d] mb-4 flex items-center gap-2 text-sm">
                     <span className="material-symbols-outlined text-[#00327d] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
