@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useTransition, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from '@/components/Modals/SlideOverBase';
@@ -117,6 +117,9 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
   const [showWrite, setShowWrite] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAuthor, setFilterAuthor] = useState('전체');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownSearch, setDropdownSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
   const { showToast } = useApp();
   const router = useRouter();
@@ -136,6 +139,22 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
   const authorNames = isAdmin
     ? ['전체', ...Array.from(new Set(requests.map(r => r.authorName)))]
     : [];
+
+  const filteredDropdownNames = authorNames.filter(n =>
+    n === '전체' || n.toLowerCase().includes(dropdownSearch.toLowerCase())
+  );
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+        setDropdownSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const filtered = requests
     .filter(r => !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -402,17 +421,63 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               </button>
             )}
           </div>
-          {/* Admin participant filter — pill style */}
+          {/* Admin participant filter — dropdown */}
           {isAdmin && (
-            <div className="flex gap-2 overflow-x-auto pb-1 flex-shrink-0">
-              {authorNames.map(n => (
-                <button key={n} onClick={() => setFilterAuthor(n)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-                    filterAuthor === n ? 'bg-[#00327d] text-white' : 'bg-[#e7e8e9] text-[#434653] hover:bg-[#edeeef]'
-                  }`}>
-                  {n === '전체' ? '전체 참여자' : n}
-                </button>
-              ))}
+            <div className="relative flex-shrink-0" ref={dropdownRef}>
+              <button
+                onClick={() => { setDropdownOpen(o => !o); setDropdownSearch(''); }}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-semibold transition-colors whitespace-nowrap ${
+                  filterAuthor !== '전체'
+                    ? 'bg-[#00327d] text-white border-[#00327d]'
+                    : 'bg-white text-[#434653] border-[#c3c6d5] hover:border-[#00327d]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">person_search</span>
+                {filterAuthor === '전체' ? '전체 참여자' : filterAuthor}
+                <span className="material-symbols-outlined text-[18px]">
+                  {dropdownOpen ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-[#e1e3e4] rounded-2xl shadow-xl z-50 overflow-hidden">
+                  {/* 검색 입력 */}
+                  <div className="p-3 border-b border-[#e1e3e4]">
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#737784] text-[16px]">search</span>
+                      <input
+                        autoFocus
+                        value={dropdownSearch}
+                        onChange={e => setDropdownSearch(e.target.value)}
+                        placeholder="참여자 이름 검색"
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-[#f3f4f5] rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-[#00327d] transition-all"
+                      />
+                    </div>
+                  </div>
+                  {/* 목록 */}
+                  <ul className="max-h-56 overflow-y-auto py-1">
+                    {filteredDropdownNames.length === 0 ? (
+                      <li className="px-4 py-3 text-sm text-[#737784] text-center">검색 결과 없음</li>
+                    ) : filteredDropdownNames.map(n => (
+                      <li key={n}>
+                        <button
+                          onClick={() => { setFilterAuthor(n); setDropdownOpen(false); setDropdownSearch(''); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors flex items-center justify-between ${
+                            filterAuthor === n
+                              ? 'bg-[#dae2ff] text-[#001946]'
+                              : 'text-[#434653] hover:bg-[#f3f4f5]'
+                          }`}
+                        >
+                          {n === '전체' ? '전체 참여자' : n}
+                          {filterAuthor === n && (
+                            <span className="material-symbols-outlined text-[16px] text-[#00327d]">check</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
