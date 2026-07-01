@@ -7,6 +7,7 @@ import SlideOverBase from '@/components/Modals/SlideOverBase';
 import {
   createSupportRequest, deleteSupportRequest, updateSupportRequest,
   updateSupportStatus, getSupportComments, addSupportComment, deleteSupportComment,
+  markSupportRequestViewed,
 } from '@/actions/support';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -24,7 +25,7 @@ interface Request {
   id: number; title: string; content: string;
   authorId: string; authorName: string; status: string;
   fileUrl: string | null; fileName: string | null;
-  comments: number; date: string;
+  comments: number; date: string; hasNewComment: boolean;
 }
 interface Comment {
   id: number; authorName: string; authorId: string; content: string;
@@ -179,6 +180,10 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
     setCContent(''); setCFileUrl(null); setCFileName(null);
     setSelected(req);
     setCommentsLoading(true);
+    // NEW 배지 즉시 제거 (낙관적 업데이트)
+    setRequests(prev => prev.map(r => r.id === req.id ? { ...r, hasNewComment: false } : r));
+    // 조회 기록 서버에 저장 (fire-and-forget)
+    markSupportRequestViewed(req.id).catch(() => {});
     const data = await getSupportComments(req.id);
     setComments(data);
     setCommentsLoading(false);
@@ -302,7 +307,12 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         setCContent(''); setCFileUrl(null); setCFileName(null);
         const data = await getSupportComments(selected.id);
         setComments(data);
-        setRequests(prev => prev.map(r => r.id === selected.id ? { ...r, comments: r.comments + 1 } : r));
+        // 본인이 방금 단 댓글이므로 자신에게는 NEW 표시 없음 (viewed 갱신)
+        markSupportRequestViewed(selected.id).catch(() => {});
+        setRequests(prev => prev.map(r => r.id === selected.id
+          ? { ...r, comments: r.comments + 1, hasNewComment: false }
+          : r
+        ));
       } else {
         showToast(result.error ?? '오류가 발생했습니다.');
       }
@@ -442,6 +452,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               const cfg = statusCfg(req.status);
               const canDel = isAdmin || req.authorId === currentUserId;
               const isActive = selected?.id === req.id;
+              const hasNew = req.hasNewComment;
               return (
                 <div key={req.id}
                   onClick={() => openDetail(req)}
@@ -450,16 +461,25 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    {/* 1행: 상태 배지 — 참여자 이름 — 제목 */}
+                    {/* 1행: 상태 배지 — 참여자 이름 — 제목 — NEW */}
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className={`flex items-center gap-0.5 text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${cfg.bg} ${cfg.text}`}>
                         <span className="material-symbols-outlined text-[12px]">{cfg.icon}</span>
                         {req.status}
                       </span>
                       {isAdmin && (
-                        <span className="text-[15px] font-extrabold text-[#191c1d] flex-shrink-0">{req.authorName}</span>
+                        <span className={`text-[15px] font-extrabold flex-shrink-0 ${hasNew ? 'text-[#E63946]' : 'text-[#191c1d]'}`}>
+                          {req.authorName}
+                        </span>
                       )}
-                      <span className="text-sm text-[#434653] truncate">{req.title}</span>
+                      <span className={`text-sm truncate ${hasNew ? 'text-[#E63946] font-semibold' : 'text-[#434653]'}`}>
+                        {req.title}
+                      </span>
+                      {hasNew && (
+                        <span className="flex-shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#E63946] text-white animate-pulse">
+                          NEW
+                        </span>
+                      )}
                       {req.fileUrl && (
                         <span className="text-xs text-[#0047ab] flex items-center gap-0.5 flex-shrink-0">
                           <span className="material-symbols-outlined text-[12px]">attach_file</span>첨부
@@ -469,7 +489,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                     {/* 2행: 날짜 + 댓글 수 */}
                     <div className="flex items-center gap-3 text-xs text-[#9ea3ae]">
                       <span>{req.date}</span>
-                      <span className="flex items-center gap-0.5">
+                      <span className={`flex items-center gap-0.5 ${hasNew ? 'text-[#E63946] font-bold' : ''}`}>
                         <span className="material-symbols-outlined text-[12px]">chat_bubble</span>
                         {req.comments}
                       </span>

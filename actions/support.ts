@@ -9,18 +9,24 @@ const MAX_CONTENT = 2000;
 async function ensureTables() {
   await sql`
     CREATE TABLE IF NOT EXISTS support_requests (
-      id          SERIAL PRIMARY KEY,
-      title       TEXT NOT NULL,
-      content     TEXT NOT NULL,
-      author_id   TEXT NOT NULL,
-      author_name TEXT NOT NULL,
-      status      TEXT NOT NULL DEFAULT '검토중',
-      file_url    TEXT,
-      file_name   TEXT,
-      comments    INTEGER NOT NULL DEFAULT 0,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id               SERIAL PRIMARY KEY,
+      title            TEXT NOT NULL,
+      content          TEXT NOT NULL,
+      author_id        TEXT NOT NULL,
+      author_name      TEXT NOT NULL,
+      status           TEXT NOT NULL DEFAULT '검토중',
+      file_url         TEXT,
+      file_name        TEXT,
+      comments         INTEGER NOT NULL DEFAULT 0,
+      last_comment_at  TIMESTAMPTZ,
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  // 기존 테이블에 last_comment_at 컬럼 추가 (이미 있으면 무시)
+  try {
+    await sql`ALTER TABLE support_requests ADD COLUMN IF NOT EXISTS last_comment_at TIMESTAMPTZ`;
+  } catch { /* ignore */ }
+
   await sql`
     CREATE TABLE IF NOT EXISTS support_comments (
       id          SERIAL PRIMARY KEY,
@@ -33,7 +39,15 @@ async function ensureTables() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
-  // FK with CASCADE
+  // 조회 기록 테이블
+  await sql`
+    CREATE TABLE IF NOT EXISTS support_views (
+      user_id       TEXT NOT NULL,
+      request_id    INTEGER NOT NULL,
+      last_viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, request_id)
+    )
+  `;
   try {
     await sql`
       ALTER TABLE support_requests
@@ -48,6 +62,13 @@ async function ensureTables() {
         FOREIGN KEY (request_id) REFERENCES support_requests(id) ON DELETE CASCADE
     `;
   } catch { /* already exists */ }
+  try {
+    await sql`
+      ALTER TABLE support_views
+        ADD CONSTRAINT support_views_request_id_fkey
+        FOREIGN KEY (request_id) REFERENCES support_requests(id) ON DELETE CASCADE
+    `;
+  } catch { /* already exists */ }
 }
 
 export async function getSupportRequests() {
@@ -55,32 +76,60 @@ export async function getSupportRequests() {
   if (!session?.user) return [];
   try {
     await ensureTables();
+    const userId = session.user.id;
     const isAdmin = session.user.role === 'admin';
     const rows = isAdmin
       ? await sql`
-          SELECT id, title, content, author_id AS "authorId", author_name AS "authorName",
-                 status, file_url AS "fileUrl", file_name AS "fileName", comments,
-                 TO_CHAR(created_at, 'YYYY-MM-DD') AS date
-          FROM support_requests
-          ORDER BY created_at DESC
+          SELECT r.id, r.title, r.content,
+                 r.author_id AS "authorId", r.author_name AS "authorName",
+                 r.status, r.file_url AS "fileUrl", r.file_name AS "fileName",
+                 r.comments, TO_CHAR(r.created_at, 'YYYY-MM-DD') AS date,
+                 (
+                   r.last_comment_at IS NOT NULL AND
+                   (v.last_viewed_at IS NULL OR r.last_comment_at > v.last_viewed_at)
+                 ) AS "hasNewComment"
+          FROM support_requests r
+          LEFT JOIN support_views v ON v.request_id = r.id AND v.user_id = ${userId}
+          ORDER BY r.created_at DESC
         `
       : await sql`
-          SELECT id, title, content, author_id AS "authorId", author_name AS "authorName",
-                 status, file_url AS "fileUrl", file_name AS "fileName", comments,
-                 TO_CHAR(created_at, 'YYYY-MM-DD') AS date
-          FROM support_requests
-          WHERE author_id = ${session.user.id}
-          ORDER BY created_at DESC
+          SELECT r.id, r.title, r.content,
+                 r.author_id AS "authorId", r.author_name AS "authorName",
+                 r.status, r.file_url AS "fileUrl", r.file_name AS "fileName",
+                 r.comments, TO_CHAR(r.created_at, 'YYYY-MM-DD') AS date,
+                 (
+                   r.last_comment_at IS NOT NULL AND
+                   (v.last_viewed_at IS NULL OR r.last_comment_at > v.last_viewed_at)
+                 ) AS "hasNewComment"
+          FROM support_requests r
+          LEFT JOIN support_views v ON v.request_id = r.id AND v.user_id = ${userId}
+          WHERE r.author_id = ${userId}
+          ORDER BY r.created_at DESC
         `;
     return rows as Array<{
       id: number; title: string; content: string;
       authorId: string; authorName: string; status: string;
       fileUrl: string | null; fileName: string | null;
-      comments: number; date: string;
+      comments: number; date: string; hasNewComment: boolean;
     }>;
   } catch (e) {
     console.error('[getSupportRequests]', e);
     return [];
+  }
+}
+
+// 글 조회 시 호출 — last_viewed_at 갱신
+export async function markSupportRequestViewed(requestId: number) {
+  const session = await auth();
+  if (!session?.user) return;
+  try {
+    await sql`
+      INSERT INTO support_views (user_id, request_id, last_viewed_at)
+      VALUES (${session.user.id}, ${requestId}, NOW())
+      ON CONFLICT (user_id, request_id) DO UPDATE SET last_viewed_at = NOW()
+    `;
+  } catch (e) {
+    console.error('[markSupportRequestViewed]', e);
   }
 }
 
@@ -143,18 +192,11 @@ export async function updateSupportRequest(formData: FormData) {
 
   try {
     const isAdmin = session.user.role === 'admin';
-    if (isAdmin) {
-      if (clearFile || fileUrl) {
-        await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE id=${id}`;
-      } else {
-        await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE id=${id}`;
-      }
+    const where = isAdmin ? sql`id = ${id}` : sql`id = ${id} AND author_id = ${session.user.id}`;
+    if (clearFile || fileUrl) {
+      await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE ${where}`;
     } else {
-      if (clearFile || fileUrl) {
-        await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE id=${id} AND author_id=${session.user.id}`;
-      } else {
-        await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE id=${id} AND author_id=${session.user.id}`;
-      }
+      await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE ${where}`;
     }
     revalidatePath('/support');
     return { success: true };
@@ -213,7 +255,12 @@ export async function addSupportComment(formData: FormData) {
       INSERT INTO support_comments (request_id, author_id, author_name, content, file_url, file_name)
       VALUES (${requestId}, ${session.user.id}, ${session.user.name ?? '익명'}, ${content}, ${fileUrl}, ${fileName})
     `;
-    await sql`UPDATE support_requests SET comments = comments + 1 WHERE id = ${requestId}`;
+    // 댓글 수 증가 + last_comment_at 갱신
+    await sql`
+      UPDATE support_requests
+      SET comments = comments + 1, last_comment_at = NOW()
+      WHERE id = ${requestId}
+    `;
     revalidatePath('/support');
     return { success: true };
   } catch (e) {
