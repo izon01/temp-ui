@@ -111,30 +111,35 @@ function FileUploadInput({ onFile, onClear, fileName, compact }: {
 
 export default function SupportClient({ initialRequests, isAdmin, currentUserId }: Props) {
   const [requests, setRequests] = useState<Request[]>(initialRequests);
-  const [selected, setSelected] = useState<Request | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+
+  // Detail slide-over
+  const [selected, setSelected]           = useState<Request | null>(null);
+  const [comments, setComments]           = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+
+  // Write slide-over
   const [showWrite, setShowWrite] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterAuthor, setFilterAuthor] = useState('전체');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [wTitle, setWTitle]       = useState('');
+  const [wContent, setWContent]   = useState('');
+  const [wFileUrl, setWFileUrl]   = useState<string | null>(null);
+  const [wFileName, setWFileName] = useState<string | null>(null);
+  const [wError, setWError]       = useState('');
+
+  // Comment form (inside detail slide-over)
+  const [cContent, setCContent] = useState('');
+  const [cFileUrl, setCFileUrl] = useState<string | null>(null);
+  const [cFileName, setCFileName] = useState<string | null>(null);
+
+  // List controls
+  const [searchQuery, setSearchQuery]     = useState('');
+  const [filterAuthor, setFilterAuthor]   = useState('전체');
+  const [dropdownOpen, setDropdownOpen]   = useState(false);
   const [dropdownSearch, setDropdownSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
   const [isPending, startTransition] = useTransition();
   const { showToast } = useApp();
   const router = useRouter();
-
-  // Write form state
-  const [wTitle, setWTitle]     = useState('');
-  const [wContent, setWContent] = useState('');
-  const [wFileUrl, setWFileUrl]   = useState<string | null>(null);
-  const [wFileName, setWFileName] = useState<string | null>(null);
-  const [wError, setWError]     = useState('');
-
-  // Comment form state
-  const [cContent, setCContent] = useState('');
-  const [cFileUrl, setCFileUrl]   = useState<string | null>(null);
-  const [cFileName, setCFileName] = useState<string | null>(null);
 
   const authorNames = isAdmin
     ? ['전체', ...Array.from(new Set(requests.map(r => r.authorName)))]
@@ -144,7 +149,6 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
     n === '전체' || n.toLowerCase().includes(dropdownSearch.toLowerCase())
   );
 
-  // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -160,12 +164,21 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
     .filter(r => !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(r => !isAdmin || filterAuthor === '전체' || r.authorName === filterAuthor);
 
+  // ── Actions ──
+
   const openDetail = async (req: Request) => {
+    setCContent(''); setCFileUrl(null); setCFileName(null);
     setSelected(req);
     setCommentsLoading(true);
     const data = await getSupportComments(req.id);
     setComments(data);
     setCommentsLoading(false);
+  };
+
+  const closeDetail = () => {
+    setSelected(null);
+    setComments([]);
+    setCContent(''); setCFileUrl(null); setCFileName(null);
   };
 
   const resetWrite = () => {
@@ -200,7 +213,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
       const result = await deleteSupportRequest(req.id);
       if (result.success) {
         showToast('삭제되었습니다.');
-        if (selected?.id === req.id) setSelected(null);
+        if (selected?.id === req.id) closeDetail();
         router.refresh();
       } else {
         showToast('삭제 중 오류가 발생했습니다.');
@@ -252,126 +265,12 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
 
   const statusCfg = (s: string) => STATUS_CONFIG[s] ?? STATUS_CONFIG['검토중'];
 
-  // ── Detail Panel ──
-  if (selected) {
-    const cfg = statusCfg(selected.status);
-    const canDelete = isAdmin || selected.authorId === currentUserId;
-    return (
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
-        <button onClick={() => setSelected(null)}
-          className="flex items-center gap-1 text-sm font-semibold text-[#434653] hover:text-[#00327d] mb-6 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          목록으로 돌아가기
-        </button>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] p-6 md:p-8 mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${cfg.bg} ${cfg.text}`}>
-                <span className="material-symbols-outlined text-[14px]">{cfg.icon}</span>
-                {selected.status}
-              </span>
-              {isAdmin && (
-                <div className="flex gap-1">
-                  {STATUS_LIST.filter(s => s !== selected.status).map(s => (
-                    <button key={s} onClick={() => handleStatusChange(s)} disabled={isPending}
-                      className={`text-xs px-2 py-1 rounded-full border font-semibold transition-colors hover:opacity-90 ${statusCfg(s).bg} ${statusCfg(s).text} disabled:opacity-50`}>
-                      → {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {canDelete && (
-              <button onClick={() => handleDelete(selected)} disabled={isPending}
-                className="flex items-center gap-1 text-xs bg-[#ffdad6] text-[#93000a] hover:bg-[#ba1a1a] hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                <span className="material-symbols-outlined text-[14px]">delete</span>
-                삭제
-              </button>
-            )}
-          </div>
-
-          <h1 className="text-2xl font-bold text-[#191c1d] mb-2" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{selected.title}</h1>
-          <div className="flex items-center gap-3 text-xs text-[#737784] mb-6">
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">person</span>{selected.authorName}
-            </span>
-            <span className="w-px h-3 bg-[#c3c6d5]" />
-            <span>{selected.date}</span>
-          </div>
-          <p className="text-[#434653] leading-relaxed whitespace-pre-wrap text-[15px]">{selected.content}</p>
-          {selected.fileUrl && <FileAttachment url={selected.fileUrl} name={selected.fileName} />}
-        </div>
-
-        {/* Comments */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] p-6 md:p-8">
-          <h2 className="font-bold text-[#191c1d] mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#00327d]" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
-            댓글 {comments.length}개
-          </h2>
-
-          {commentsLoading ? (
-            <div className="py-8 text-center text-[#737784] text-sm">불러오는 중...</div>
-          ) : comments.length === 0 ? (
-            <div className="py-8 text-center text-[#737784] text-sm">아직 댓글이 없습니다.</div>
-          ) : (
-            <div className="space-y-4 mb-6">
-              {comments.map(c => {
-                const canDelC = isAdmin || c.authorId === currentUserId;
-                const isAdminComment = c.authorId === 'admin' || c.authorName.includes('관리자');
-                return (
-                  <div key={c.id} className={`rounded-xl p-4 ${isAdminComment ? 'bg-[#eef2ff] border border-[#dae2ff]' : 'bg-[#f8f9fa] border border-[#e1e3e4]'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isAdminComment ? 'bg-[#00327d] text-white' : 'bg-[#e7e8e9] text-[#434653]'}`}>
-                          {c.authorName}
-                        </span>
-                        <span className="text-xs text-[#737784]">{c.createdAt}</span>
-                      </div>
-                      {canDelC && (
-                        <button onClick={() => handleDeleteComment(c)} disabled={isPending}
-                          className="text-[#737784] hover:text-[#E63946] transition-colors">
-                          <span className="material-symbols-outlined text-[16px]">close</span>
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-sm text-[#434653] whitespace-pre-wrap">{c.content}</p>
-                    {c.fileUrl && <FileAttachment url={c.fileUrl} name={c.fileName} />}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="border-t border-[#e1e3e4] pt-5">
-            <textarea
-              value={cContent} onChange={e => setCContent(e.target.value)}
-              placeholder="댓글을 입력하세요..."
-              rows={3}
-              className="w-full border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00327d] resize-none mb-3"
-            />
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <FileUploadInput compact
-                onFile={(url, name) => { setCFileUrl(url); setCFileName(name); }}
-                onClear={() => { setCFileUrl(null); setCFileName(null); }}
-                fileName={cFileName}
-              />
-              <button onClick={handleAddComment} disabled={isPending || !cContent.trim()}
-                className="flex items-center gap-2 bg-[#00327d] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-[#0047ab] transition-colors disabled:opacity-50 active:scale-95">
-                <span className="material-symbols-outlined text-[18px]">send</span>
-                댓글 등록
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── List Panel ──
+  // ── Render ──
   return (
     <>
+      {/* ════════════════════ LIST PAGE ════════════════════ */}
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-10">
+
         {/* Header */}
         <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
@@ -408,7 +307,6 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
 
         {/* Search & filter row */}
         <div className="flex flex-col md:flex-row gap-3 mb-3">
-          {/* Search */}
           <div className="relative flex-1">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#737784]">search</span>
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
@@ -421,7 +319,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               </button>
             )}
           </div>
-          {/* Admin participant filter — dropdown */}
+
           {isAdmin && (
             <div className="relative flex-shrink-0" ref={dropdownRef}>
               <button
@@ -438,23 +336,17 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                   {dropdownOpen ? 'expand_less' : 'expand_more'}
                 </span>
               </button>
-
               {dropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-[#e1e3e4] rounded-2xl shadow-xl z-50 overflow-hidden">
-                  {/* 검색 입력 */}
                   <div className="p-3 border-b border-[#e1e3e4]">
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#737784] text-[16px]">search</span>
-                      <input
-                        autoFocus
-                        value={dropdownSearch}
-                        onChange={e => setDropdownSearch(e.target.value)}
+                      <input autoFocus value={dropdownSearch} onChange={e => setDropdownSearch(e.target.value)}
                         placeholder="참여자 이름 검색"
                         className="w-full pl-9 pr-3 py-2 text-sm bg-[#f3f4f5] rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-[#00327d] transition-all"
                       />
                     </div>
                   </div>
-                  {/* 목록 */}
                   <ul className="max-h-56 overflow-y-auto py-1">
                     {filteredDropdownNames.length === 0 ? (
                       <li className="px-4 py-3 text-sm text-[#737784] text-center">검색 결과 없음</li>
@@ -463,15 +355,11 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                         <button
                           onClick={() => { setFilterAuthor(n); setDropdownOpen(false); setDropdownSearch(''); }}
                           className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors flex items-center justify-between ${
-                            filterAuthor === n
-                              ? 'bg-[#dae2ff] text-[#001946]'
-                              : 'text-[#434653] hover:bg-[#f3f4f5]'
+                            filterAuthor === n ? 'bg-[#dae2ff] text-[#001946]' : 'text-[#434653] hover:bg-[#f3f4f5]'
                           }`}
                         >
                           {n === '전체' ? '전체 참여자' : n}
-                          {filterAuthor === n && (
-                            <span className="material-symbols-outlined text-[16px] text-[#00327d]">check</span>
-                          )}
+                          {filterAuthor === n && <span className="material-symbols-outlined text-[16px] text-[#00327d]">check</span>}
                         </button>
                       </li>
                     ))}
@@ -481,8 +369,9 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
             </div>
           )}
         </div>
-        {/* Count text */}
-        <p className="text-xs text-[#737784] mb-4">총 제출 건수: <span className="font-semibold text-[#434653]">{filtered.length}건</span></p>
+        <p className="text-xs text-[#737784] mb-4">
+          총 제출 건수: <span className="font-semibold text-[#434653]">{filtered.length}건</span>
+        </p>
 
         {/* List */}
         {filtered.length === 0 ? (
@@ -496,13 +385,16 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
             {filtered.map((req, idx) => {
               const cfg = statusCfg(req.status);
               const canDel = isAdmin || req.authorId === currentUserId;
+              const isActive = selected?.id === req.id;
               return (
                 <div key={req.id}
                   onClick={() => openDetail(req)}
-                  className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f8f9ff] transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''}`}
+                  className={`cursor-pointer flex items-center gap-4 p-5 transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${
+                    isActive ? 'bg-[#eef2ff]' : 'hover:bg-[#f8f9ff]'
+                  }`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-[#dae2ff] flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[#00327d] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-[#00327d]' : 'bg-[#dae2ff]'}`}>
+                    <span className={`material-symbols-outlined text-[20px] ${isActive ? 'text-white' : 'text-[#00327d]'}`} style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -548,19 +440,16 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         )}
       </div>
 
-      {/* ── Write Slide-Over ── */}
+      {/* ════════════════════ WRITE SLIDE-OVER ════════════════════ */}
       <SlideOverBase isOpen={showWrite} onClose={() => { resetWrite(); setShowWrite(false); }} title="서류 제출">
         <div className="flex flex-col min-h-[70vh] md:min-h-0 md:h-full">
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-28">
-
             {wError && (
               <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">error</span>
                 {wError}
               </div>
             )}
-
-            {/* 제목 */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-[#434653]">제목</label>
               <input type="text" value={wTitle} onChange={e => setWTitle(e.target.value)}
@@ -568,8 +457,6 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                 className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-4 text-lg focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all"
               />
             </div>
-
-            {/* 내용 */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-[#434653]">내용</label>
               <textarea value={wContent} onChange={e => setWContent(e.target.value)} maxLength={MAX_CONTENT}
@@ -581,8 +468,6 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                 {wContent.length}/{MAX_CONTENT}
               </div>
             </div>
-
-            {/* 파일 첨부 */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-[#434653]">
                 파일 첨부 <span className="font-normal text-[#737784]">(선택)</span>
@@ -594,8 +479,6 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               />
             </div>
           </div>
-
-          {/* 제출 버튼 — 커뮤니티 '등록 완료' 동일 디자인 */}
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-[#e1e3e4]">
             <button onClick={handleSubmitWrite} disabled={isPending || !wTitle.trim() || !wContent.trim()}
               className="w-full bg-[#0047ab] text-white h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50">
@@ -606,6 +489,135 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
             </button>
           </div>
         </div>
+      </SlideOverBase>
+
+      {/* ════════════════════ DETAIL SLIDE-OVER ════════════════════ */}
+      <SlideOverBase isOpen={!!selected} onClose={closeDetail} title={selected?.title ?? ''}>
+        {selected && (() => {
+          const cfg = statusCfg(selected.status);
+          const canDelete = isAdmin || selected.authorId === currentUserId;
+          return (
+            <div className="flex flex-col min-h-[70vh] md:min-h-0 md:h-full">
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-6">
+
+                {/* 상태 배지 + 관리자 액션 */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full ${cfg.bg} ${cfg.text}`}>
+                      <span className="material-symbols-outlined text-[14px]">{cfg.icon}</span>
+                      {selected.status}
+                    </span>
+                    {isAdmin && (
+                      <div className="flex gap-1 flex-wrap">
+                        {STATUS_LIST.filter(s => s !== selected.status).map(s => (
+                          <button key={s} onClick={() => handleStatusChange(s)} disabled={isPending}
+                            className={`text-xs px-2.5 py-1 rounded-full border font-semibold transition-colors hover:opacity-90 ${statusCfg(s).bg} ${statusCfg(s).text} disabled:opacity-50`}>
+                            → {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {canDelete && (
+                    <button onClick={() => handleDelete(selected)} disabled={isPending}
+                      className="flex items-center gap-1 text-xs bg-[#ffdad6] text-[#93000a] hover:bg-[#ba1a1a] hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                      삭제
+                    </button>
+                  )}
+                </div>
+
+                {/* 메타 정보 */}
+                <div className="flex items-center gap-3 text-xs text-[#737784] -mt-2">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">person</span>
+                    {selected.authorName}
+                  </span>
+                  <span className="w-px h-3 bg-[#c3c6d5]" />
+                  <span>{selected.date}</span>
+                </div>
+
+                {/* 본문 */}
+                <div className="bg-[#f8f9fa] rounded-xl p-5">
+                  <p className="text-[#434653] leading-relaxed whitespace-pre-wrap text-[15px]">{selected.content}</p>
+                  {selected.fileUrl && <FileAttachment url={selected.fileUrl} name={selected.fileName} />}
+                </div>
+
+                {/* 구분선 */}
+                <div className="border-t border-[#e1e3e4]" />
+
+                {/* 댓글 목록 */}
+                <div>
+                  <h3 className="font-bold text-[#191c1d] mb-4 flex items-center gap-2 text-sm">
+                    <span className="material-symbols-outlined text-[#00327d] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
+                    댓글 {comments.length}개
+                  </h3>
+
+                  {commentsLoading ? (
+                    <div className="py-8 text-center text-[#737784] text-sm flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                      불러오는 중...
+                    </div>
+                  ) : comments.length === 0 ? (
+                    <div className="py-6 text-center text-[#737784] text-sm">아직 댓글이 없습니다.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {comments.map(c => {
+                        const canDelC = isAdmin || c.authorId === currentUserId;
+                        const isAdminComment = c.authorId === 'admin' || c.authorName.includes('관리자');
+                        return (
+                          <div key={c.id} className={`rounded-xl p-4 ${isAdminComment ? 'bg-[#eef2ff] border border-[#dae2ff]' : 'bg-[#f8f9fa] border border-[#e1e3e4]'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isAdminComment ? 'bg-[#00327d] text-white' : 'bg-[#e7e8e9] text-[#434653]'}`}>
+                                  {c.authorName}
+                                </span>
+                                <span className="text-xs text-[#737784]">{c.createdAt}</span>
+                              </div>
+                              {canDelC && (
+                                <button onClick={() => handleDeleteComment(c)} disabled={isPending}
+                                  className="text-[#737784] hover:text-[#E63946] transition-colors">
+                                  <span className="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-sm text-[#434653] whitespace-pre-wrap">{c.content}</p>
+                            {c.fileUrl && <FileAttachment url={c.fileUrl} name={c.fileName} />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 댓글 입력 */}
+                <div className="border-t border-[#e1e3e4] pt-4">
+                  <textarea
+                    value={cContent} onChange={e => setCContent(e.target.value)}
+                    placeholder="댓글을 입력하세요..."
+                    rows={3}
+                    className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] resize-none mb-3 transition-all"
+                  />
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <FileUploadInput compact
+                      onFile={(url, name) => { setCFileUrl(url); setCFileName(name); }}
+                      onClear={() => { setCFileUrl(null); setCFileName(null); }}
+                      fileName={cFileName}
+                    />
+                    <button onClick={handleAddComment} disabled={isPending || !cContent.trim()}
+                      className="flex items-center gap-2 bg-[#00327d] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-[#0047ab] transition-colors disabled:opacity-50 active:scale-95">
+                      {isPending
+                        ? <><span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>등록 중</>
+                        : <><span className="material-symbols-outlined text-[16px]">send</span>댓글 등록</>
+                      }
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
       </SlideOverBase>
     </>
   );
