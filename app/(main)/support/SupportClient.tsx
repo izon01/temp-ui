@@ -389,28 +389,29 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               return (
                 <div key={req.id}
                   onClick={() => openDetail(req)}
-                  className={`cursor-pointer flex items-center gap-4 p-5 transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${
+                  className={`cursor-pointer flex items-center gap-4 px-5 py-4 transition-colors ${idx < filtered.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${
                     isActive ? 'bg-[#eef2ff]' : 'hover:bg-[#f8f9ff]'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-[#00327d]' : 'bg-[#dae2ff]'}`}>
-                    <span className={`material-symbols-outlined text-[20px] ${isActive ? 'text-white' : 'text-[#00327d]'}`} style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
-                  </div>
                   <div className="flex-1 min-w-0">
+                    {/* 1행: 상태 배지 — 참여자 이름 — 제목 */}
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5 ${cfg.bg} ${cfg.text}`}>
+                      <span className={`flex items-center gap-0.5 text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${cfg.bg} ${cfg.text}`}>
                         <span className="material-symbols-outlined text-[12px]">{cfg.icon}</span>
                         {req.status}
                       </span>
+                      {isAdmin && (
+                        <span className="text-[15px] font-extrabold text-[#191c1d] flex-shrink-0">{req.authorName}</span>
+                      )}
+                      <span className="text-sm text-[#434653] truncate">{req.title}</span>
                       {req.fileUrl && (
-                        <span className="text-xs text-[#0047ab] flex items-center gap-0.5">
+                        <span className="text-xs text-[#0047ab] flex items-center gap-0.5 flex-shrink-0">
                           <span className="material-symbols-outlined text-[12px]">attach_file</span>첨부
                         </span>
                       )}
-                      <span className="font-semibold text-[#191c1d] truncate">{req.title}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-[#737784]">
-                      {isAdmin && <span className="font-semibold text-[#434653]">{req.authorName}</span>}
+                    {/* 2행: 날짜 + 댓글 수 */}
+                    <div className="flex items-center gap-3 text-xs text-[#9ea3ae]">
                       <span>{req.date}</span>
                       <span className="flex items-center gap-0.5">
                         <span className="material-symbols-outlined text-[12px]">chat_bubble</span>
