@@ -128,6 +128,42 @@ export async function deleteSupportRequest(id: number) {
   }
 }
 
+export async function updateSupportRequest(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: '로그인이 필요합니다.' };
+
+  const id      = parseInt(String(formData.get('id') ?? '0'), 10);
+  const title   = String(formData.get('title')   ?? '').trim();
+  const content = String(formData.get('content') ?? '').trim();
+  const fileUrl  = formData.get('fileUrl')  ? String(formData.get('fileUrl'))  : null;
+  const fileName = formData.get('fileName') ? String(formData.get('fileName')) : null;
+  const clearFile = formData.get('clearFile') === 'true';
+
+  if (!id || !title || !content) return { success: false, error: '제목과 내용을 입력해주세요.' };
+
+  try {
+    const isAdmin = session.user.role === 'admin';
+    if (isAdmin) {
+      if (clearFile || fileUrl) {
+        await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE id=${id}`;
+      } else {
+        await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE id=${id}`;
+      }
+    } else {
+      if (clearFile || fileUrl) {
+        await sql`UPDATE support_requests SET title=${title}, content=${content}, file_url=${fileUrl}, file_name=${fileName} WHERE id=${id} AND author_id=${session.user.id}`;
+      } else {
+        await sql`UPDATE support_requests SET title=${title}, content=${content} WHERE id=${id} AND author_id=${session.user.id}`;
+      }
+    }
+    revalidatePath('/support');
+    return { success: true };
+  } catch (e) {
+    console.error('[updateSupportRequest]', e);
+    return { success: false, error: '수정 중 오류가 발생했습니다.' };
+  }
+}
+
 export async function updateSupportStatus(id: number, status: string) {
   const session = await auth();
   if (session?.user?.role !== 'admin') return { success: false, error: '권한이 없습니다.' };

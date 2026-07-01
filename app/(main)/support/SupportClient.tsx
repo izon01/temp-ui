@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from '@/components/Modals/SlideOverBase';
 import {
-  createSupportRequest, deleteSupportRequest, updateSupportStatus,
-  getSupportComments, addSupportComment, deleteSupportComment,
+  createSupportRequest, deleteSupportRequest, updateSupportRequest,
+  updateSupportStatus, getSupportComments, addSupportComment, deleteSupportComment,
 } from '@/actions/support';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -125,6 +125,15 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
   const [wFileName, setWFileName] = useState<string | null>(null);
   const [wError, setWError]       = useState('');
 
+  // Edit mode (inside detail slide-over)
+  const [editMode, setEditMode]     = useState(false);
+  const [eTitle, setETitle]         = useState('');
+  const [eContent, setEContent]     = useState('');
+  const [eFileUrl, setEFileUrl]     = useState<string | null>(null);
+  const [eFileName, setEFileName]   = useState<string | null>(null);
+  const [eClearFile, setEClearFile] = useState(false);
+  const [eError, setEError]         = useState('');
+
   // Comment form (inside detail slide-over)
   const [cContent, setCContent] = useState('');
   const [cFileUrl, setCFileUrl] = useState<string | null>(null);
@@ -179,6 +188,53 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
     setSelected(null);
     setComments([]);
     setCContent(''); setCFileUrl(null); setCFileName(null);
+    setEditMode(false); setETitle(''); setEContent('');
+    setEFileUrl(null); setEFileName(null); setEClearFile(false); setEError('');
+  };
+
+  const enterEdit = (req: Request) => {
+    setETitle(req.title);
+    setEContent(req.content);
+    setEFileUrl(req.fileUrl);
+    setEFileName(req.fileName);
+    setEClearFile(false);
+    setEError('');
+    setEditMode(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!selected) return;
+    if (!eTitle.trim() || !eContent.trim()) { setEError('제목과 내용을 입력해주세요.'); return; }
+    if (eContent.length > MAX_CONTENT) { setEError(`내용은 ${MAX_CONTENT}자를 초과할 수 없습니다.`); return; }
+    setEError('');
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append('id', String(selected.id));
+      fd.append('title', eTitle.trim());
+      fd.append('content', eContent.trim());
+      if (eClearFile) {
+        fd.append('clearFile', 'true');
+      } else if (eFileUrl && eFileUrl !== selected.fileUrl) {
+        fd.append('fileUrl', eFileUrl);
+        fd.append('fileName', eFileName ?? '');
+      }
+      const result = await updateSupportRequest(fd);
+      if (result.success) {
+        const updated: Request = {
+          ...selected,
+          title: eTitle.trim(),
+          content: eContent.trim(),
+          fileUrl: eClearFile ? null : (eFileUrl !== selected.fileUrl ? eFileUrl : selected.fileUrl),
+          fileName: eClearFile ? null : (eFileUrl !== selected.fileUrl ? eFileName : selected.fileName),
+        };
+        setSelected(updated);
+        setRequests(prev => prev.map(r => r.id === selected.id ? { ...r, title: updated.title } : r));
+        setEditMode(false);
+        showToast('수정되었습니다 ✓');
+      } else {
+        setEError(result.error ?? '오류가 발생했습니다.');
+      }
+    });
   };
 
   const resetWrite = () => {
@@ -501,14 +557,14 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
             <div className="flex flex-col min-h-[70vh] md:min-h-0 md:h-full">
               <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-6">
 
-                {/* 상태 배지 + 관리자 액션 */}
+                {/* 상태 배지 + 수정/삭제 버튼 */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full ${cfg.bg} ${cfg.text}`}>
                       <span className="material-symbols-outlined text-[14px]">{cfg.icon}</span>
                       {selected.status}
                     </span>
-                    {isAdmin && (
+                    {isAdmin && !editMode && (
                       <div className="flex gap-1 flex-wrap">
                         {STATUS_LIST.filter(s => s !== selected.status).map(s => (
                           <button key={s} onClick={() => handleStatusChange(s)} disabled={isPending}
@@ -519,13 +575,30 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                       </div>
                     )}
                   </div>
-                  {canDelete && (
-                    <button onClick={() => handleDelete(selected)} disabled={isPending}
-                      className="flex items-center gap-1 text-xs bg-[#ffdad6] text-[#93000a] hover:bg-[#ba1a1a] hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                      <span className="material-symbols-outlined text-[14px]">delete</span>
-                      삭제
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* 수정 버튼 — 참여자 본인 글만 (관리자 제외) */}
+                    {!isAdmin && selected.authorId === currentUserId && !editMode && (
+                      <button onClick={() => enterEdit(selected)} disabled={isPending}
+                        className="flex items-center gap-1 text-xs bg-[#dae2ff] text-[#001946] hover:bg-[#00327d] hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                        <span className="material-symbols-outlined text-[14px]">edit</span>
+                        수정
+                      </button>
+                    )}
+                    {editMode && (
+                      <button onClick={() => setEditMode(false)} disabled={isPending}
+                        className="flex items-center gap-1 text-xs bg-[#e7e8e9] text-[#434653] hover:bg-[#c3c6d5] px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                        <span className="material-symbols-outlined text-[14px]">close</span>
+                        취소
+                      </button>
+                    )}
+                    {canDelete && !editMode && (
+                      <button onClick={() => handleDelete(selected)} disabled={isPending}
+                        className="flex items-center gap-1 text-xs bg-[#ffdad6] text-[#93000a] hover:bg-[#ba1a1a] hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                        삭제
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* 메타 정보 */}
@@ -538,17 +611,73 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                   <span>{selected.date}</span>
                 </div>
 
-                {/* 본문 */}
-                <div className="bg-[#f8f9fa] rounded-xl p-5">
-                  <p className="text-[#434653] leading-relaxed whitespace-pre-wrap text-[15px]">{selected.content}</p>
-                  {selected.fileUrl && <FileAttachment url={selected.fileUrl} name={selected.fileName} />}
-                </div>
+                {/* 편집 모드 */}
+                {editMode ? (
+                  <div className="space-y-4">
+                    {eError && (
+                      <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]">error</span>
+                        {eError}
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-[#434653]">제목</label>
+                      <input type="text" value={eTitle} onChange={e => setETitle(e.target.value)}
+                        className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-[#434653]">내용</label>
+                      <textarea value={eContent} onChange={e => setEContent(e.target.value)} maxLength={MAX_CONTENT}
+                        rows={7}
+                        className="w-full bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl px-4 py-3 text-sm focus:border-[#00327d] focus:ring-1 focus:ring-[#00327d] outline-none transition-all resize-none"
+                      />
+                      <div className={`flex justify-end text-xs ${eContent.length >= MAX_CONTENT ? 'text-[#b7102a] font-bold' : 'text-[#737784]'}`}>
+                        {eContent.length}/{MAX_CONTENT}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-[#434653]">첨부파일</label>
+                      {/* 기존 파일 표시 */}
+                      {(eFileUrl && !eClearFile) ? (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-[#dae2ff] border border-[#00327d]/20 rounded-xl text-sm">
+                          <span className="material-symbols-outlined text-[#00327d] text-[18px]">attach_file</span>
+                          <span className="flex-1 truncate text-[#191c1d] font-semibold">{eFileName ?? '첨부파일'}</span>
+                          <button onClick={() => { setEClearFile(true); setEFileUrl(null); setEFileName(null); }}
+                            className="text-[#737784] hover:text-[#E63946] transition-colors">
+                            <span className="material-symbols-outlined text-[18px]">close</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <FileUploadInput
+                          onFile={(url, name) => { setEFileUrl(url); setEFileName(name); setEClearFile(false); }}
+                          onClear={() => { setEFileUrl(null); setEFileName(null); }}
+                          fileName={eFileName}
+                        />
+                      )}
+                    </div>
+                    <button onClick={handleSaveEdit} disabled={isPending || !eTitle.trim() || !eContent.trim()}
+                      className="w-full bg-[#0047ab] text-white h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+                      {isPending
+                        ? <><span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>저장 중...</>
+                        : <><span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>수정 완료</>
+                      }
+                    </button>
+                  </div>
+                ) : (
+                  /* 본문 (읽기 모드) */
+                  <div className="bg-[#f8f9fa] rounded-xl p-5">
+                    <p className="text-[#434653] leading-relaxed whitespace-pre-wrap text-[15px]">{selected.content}</p>
+                    {selected.fileUrl && <FileAttachment url={selected.fileUrl} name={selected.fileName} />}
+                  </div>
+                )}
 
-                {/* 구분선 */}
-                <div className="border-t border-[#e1e3e4]" />
+                {/* 댓글 — 편집 모드에서는 숨김 */}
+                {editMode && <div className="border-t border-[#e1e3e4]" />}
+                {!editMode && <div className="border-t border-[#e1e3e4]" />
 
-                {/* 댓글 목록 */}
-                <div>
+                {/* 댓글 목록 — 편집 모드에서는 숨김 */}
+                <div className={editMode ? 'hidden' : ''}>
                   <h3 className="font-bold text-[#191c1d] mb-4 flex items-center gap-2 text-sm">
                     <span className="material-symbols-outlined text-[#00327d] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
                     댓글 {comments.length}개
@@ -591,8 +720,8 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
                   )}
                 </div>
 
-                {/* 댓글 입력 */}
-                <div className="border-t border-[#e1e3e4] pt-4">
+                {/* 댓글 입력 — 편집 모드에서는 숨김 */}
+                <div className={`border-t border-[#e1e3e4] pt-4${editMode ? ' hidden' : ''}`}>
                   <textarea
                     value={cContent} onChange={e => setCContent(e.target.value)}
                     placeholder="댓글을 입력하세요..."
