@@ -58,18 +58,32 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           {session?.user && (
-            <div className="hidden md:flex items-center gap-2 mr-2">
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                session.user.role === 'admin'
-                  ? 'bg-[#ffdad8] text-[#b7102a]'
-                  : 'bg-[#dae2ff] text-[#001946]'
-              }`}>
-                {session.user.role === 'admin' ? '관리자' : '참여자'}
-              </span>
-              <span className="text-sm font-semibold text-[#191c1d]">{session.user.name}</span>
-            </div>
+            <>
+              {/* 모바일: 배지 + 이름 컴팩트 */}
+              <div className="flex md:hidden items-center gap-1 mr-1 max-w-[110px]">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                  session.user.role === 'admin'
+                    ? 'bg-[#ffdad8] text-[#b7102a]'
+                    : 'bg-[#dae2ff] text-[#001946]'
+                }`}>
+                  {session.user.role === 'admin' ? '관리자' : '참여자'}
+                </span>
+                <span className="text-xs font-bold text-[#191c1d] truncate">{session.user.name}</span>
+              </div>
+              {/* 데스크톱: 배지 + 이름 풀사이즈 */}
+              <div className="hidden md:flex items-center gap-2 mr-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  session.user.role === 'admin'
+                    ? 'bg-[#ffdad8] text-[#b7102a]'
+                    : 'bg-[#dae2ff] text-[#001946]'
+                }`}>
+                  {session.user.role === 'admin' ? '관리자' : '참여자'}
+                </span>
+                <span className="text-sm font-semibold text-[#191c1d]">{session.user.name}</span>
+              </div>
+            </>
           )}
           <button
             onClick={openProfile}
