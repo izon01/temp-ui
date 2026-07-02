@@ -68,16 +68,22 @@ function FileUploadInput({ onFile, onClear, fileName, compact }: {
   compact?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+
+  const processFile = (file: File) => {
     if (file.size > MAX_FILE_BYTES) { alert('파일 크기는 최대 5MB입니다.'); return; }
     setLoading(true);
     const reader = new FileReader();
     reader.onload = () => { onFile(reader.result as string, file.name); setLoading(false); };
     reader.readAsDataURL(file);
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
   return (
     <div>
       {fileName ? (
@@ -97,11 +103,15 @@ function FileUploadInput({ onFile, onClear, fileName, compact }: {
           {loading ? '파일 로딩 중...' : '파일 첨부 (최대 5MB)'}
         </button>
       ) : (
-        <div onClick={() => ref.current?.click()}
-          className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]"
+        <div
+          onClick={() => ref.current?.click()}
+          onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={e => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files[0]; if (file) processFile(file); }}
+          className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer active:scale-[0.98] ${isDragging ? 'border-[#00327d] bg-[#eef2ff]' : 'border-[#c3c6d5] bg-[#f3f4f5]/50 hover:bg-[#f3f4f5]'}`}
         >
-          <span className="material-symbols-outlined text-[#00327d] text-[40px]">upload_file</span>
-          <p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p>
+          <span className={`material-symbols-outlined text-[40px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>upload_file</span>
+          <p className="font-bold text-[#191c1d]">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
           <p className="text-sm text-[#434653]">JPG·PNG·GIF·PDF·DOC·HWP·HWPX (최대 5MB)</p>
         </div>
       )}

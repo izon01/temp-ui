@@ -1,6 +1,32 @@
 'use client';
 
 import { useState, useRef, useTransition, useEffect } from 'react';
+
+function AssignmentDropZone({ onFile, selectedFileName }: { onFile: (f: File) => void; selectedFileName: string }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <div
+        onClick={() => ref.current?.click()}
+        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
+        className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer active:scale-[0.98] ${isDragging ? 'border-[#00327d] bg-[#eef2ff]' : 'border-[#c3c6d5] bg-[#f3f4f5]/50 hover:bg-[#f3f4f5]'}`}
+      >
+        <span className={`material-symbols-outlined text-[40px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>upload_file</span>
+        {selectedFileName
+          ? <p className="font-bold text-[#00327d] text-center break-all">{selectedFileName}</p>
+          : <>
+              <p className="font-bold text-[#191c1d]">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
+              <p className="text-sm text-[#434653]">PDF · DOCX · PPTX · ZIP · HWP (최대 5MB)</p>
+            </>
+        }
+      </div>
+      <input ref={ref} type="file" className="hidden" accept=".pdf,.docx,.pptx,.zip,.hwp,.hwpx" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+    </div>
+  );
+}
 import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
@@ -16,8 +42,6 @@ export default function AssignmentSubmitSlideOver() {
   const [content, setContent]   = useState('');
   const [error, setError]       = useState('');
   const [isPending, startTransition] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
-
   // 기존 제출물 (submitted=true일 때 로드)
   const [existing, setExisting] = useState<{
     link: string; fileName: string; fileData: string; content: string; submittedAt: string;
@@ -38,9 +62,7 @@ export default function AssignmentSubmitSlideOver() {
     }
   }, [openModal, selectedAssignment?.id]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = (file: File) => {
     if (file.size > 5 * 1024 * 1024) { setError('파일 크기는 5MB 이하만 가능합니다.'); return; }
     setFileName(file.name);
     const reader = new FileReader();
@@ -178,15 +200,7 @@ export default function AssignmentSubmitSlideOver() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-[#434653]">파일 업로드</label>
-                  <div onClick={() => fileRef.current?.click()}
-                    className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]">
-                    <span className="material-symbols-outlined text-[#00327d] text-[40px]">upload_file</span>
-                    {fileName
-                      ? <p className="font-bold text-[#00327d] text-center break-all">{fileName}</p>
-                      : <><p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p><p className="text-sm text-[#434653]">PDF, DOCX, PPTX, ZIP (최대 50MB)</p></>
-                    }
-                  </div>
-                  <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.pptx,.zip,.hwp,.hwpx" />
+                  <AssignmentDropZone onFile={handleFileChange} selectedFileName={fileName} />
                 </div>
 
                 <div className="flex items-center gap-3 text-[#737784] text-sm">

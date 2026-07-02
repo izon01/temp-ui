@@ -12,6 +12,27 @@ const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4MB (Vercel 서버리스 body 한도 
 
 const ACCEPT = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.hwp,.hwpx';
 
+function NoticeDropZone({ onFile }: { onFile: (f: File) => void }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <div
+        onClick={() => ref.current?.click()}
+        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
+        className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer active:scale-[0.98] ${isDragging ? 'border-[#00327d] bg-[#eef2ff]' : 'border-[#c3c6d5] bg-[#f3f4f5]/50 hover:bg-[#f3f4f5]'}`}
+      >
+        <span className={`material-symbols-outlined text-[36px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>attach_file</span>
+        <p className="text-sm text-[#434653] font-semibold">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
+        <p className="text-xs text-[#737784]">이미지 (JPG·PNG·GIF) · PDF · Word (DOC·DOCX) · 최대 4MB</p>
+      </div>
+      <input ref={ref} type="file" accept={ACCEPT} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+    </div>
+  );
+}
+
 function fileTypeIcon(mime: string) {
   if (mime.startsWith('image/'))       return 'image';
   if (mime === 'application/pdf')      return 'picture_as_pdf';
@@ -38,7 +59,6 @@ export default function NoticeWriteSlideOver() {
   const [fileLoading, setFileLoading] = useState(false);
   const [error, setError]           = useState('');
   const [isPending, startTransition] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const toggleCategory = (cat: string) =>
     setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -49,13 +69,9 @@ export default function NoticeWriteSlideOver() {
     setFileLoading(false); setError('');
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleFileChange = (file: File) => {
     if (file.size > MAX_FILE_BYTES) {
       setError(`파일 크기가 너무 큽니다. 최대 4MB까지 업로드 가능합니다.`);
-      if (fileRef.current) fileRef.current.value = '';
       return;
     }
 
@@ -72,7 +88,6 @@ export default function NoticeWriteSlideOver() {
 
   const removeFile = () => {
     setFileData(''); setFileName(''); setFileMime('');
-    if (fileRef.current) fileRef.current.value = '';
   };
 
   const handleSubmit = () => {
@@ -203,17 +218,8 @@ export default function NoticeWriteSlideOver() {
                 )}
               </div>
             ) : (
-              <div
-                onClick={() => fileRef.current?.click()}
-                className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-6 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]"
-              >
-                <span className="material-symbols-outlined text-[#00327d] text-[36px]">attach_file</span>
-                <p className="text-sm text-[#434653] font-semibold">클릭하여 파일 선택</p>
-                <p className="text-xs text-[#737784]">이미지 (JPG·PNG·GIF) · PDF · Word (DOC·DOCX) · 최대 4MB</p>
-              </div>
+              <NoticeDropZone onFile={handleFileChange} />
             )}
-
-            <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={handleFileChange} />
           </div>
 
           {/* 필독 고정 */}

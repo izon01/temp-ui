@@ -7,6 +7,27 @@ import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createCommunityPost } from '@/actions/community';
 
+function DropZone({ onFile, accept, hint }: { onFile: (f: File) => void; accept: string; hint: string }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <div
+        onClick={() => ref.current?.click()}
+        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
+        className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer active:scale-[0.98] ${isDragging ? 'border-[#00327d] bg-[#eef2ff]' : 'border-[#c3c6d5] bg-[#f3f4f5]/50 hover:bg-[#f3f4f5]'}`}
+      >
+        <span className={`material-symbols-outlined text-[40px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>upload_file</span>
+        <p className="font-bold text-[#191c1d]">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
+        <p className="text-sm text-[#434653]">{hint}</p>
+      </div>
+      <input ref={ref} type="file" accept={accept} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+    </div>
+  );
+}
+
 const CATEGORIES = ['자유게시판', '취업/진로', '스터디모집'] as const;
 type Category = typeof CATEGORIES[number];
 const MAX = 1000;
@@ -21,12 +42,10 @@ export default function WritePostSlideOver() {
   const [isPending, startTransition] = useTransition();
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [imageBase64, setImageBase64] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setTitle(''); setContent(''); setCategory('자유게시판');
     setError(''); setAttachedFile(null); setImageBase64('');
-    if (fileRef.current) fileRef.current.value = '';
   };
 
   const handleSubmit = () => {
@@ -98,44 +117,29 @@ export default function WritePostSlideOver() {
           {/* 파일 첨부 */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-[#434653]">파일 첨부 (선택)</label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.hwpx"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0] ?? null;
-                setAttachedFile(file);
-                if (file && file.type.startsWith('image/')) {
-                  const reader = new FileReader();
-                  reader.onload = () => setImageBase64(reader.result as string);
-                  reader.readAsDataURL(file);
-                } else {
-                  setImageBase64('');
-                }
-              }}
-            />
             {attachedFile ? (
               <div className="flex items-center gap-3 bg-[#dae2ff] border border-[#00327d]/20 rounded-xl px-4 py-3">
                 <span className="material-symbols-outlined text-[#00327d]">attach_file</span>
                 <span className="text-sm font-semibold text-[#191c1d] flex-1 truncate">{attachedFile.name}</span>
                 <button
                   type="button"
-                  onClick={() => { setAttachedFile(null); if (fileRef.current) fileRef.current.value = ''; }}
+                  onClick={() => { setAttachedFile(null); setImageBase64(''); }}
                   className="text-[#434653] hover:text-[#b7102a] transition-colors"
                 >
                   <span className="material-symbols-outlined text-[20px]">close</span>
                 </button>
               </div>
             ) : (
-              <div
-                onClick={() => fileRef.current?.click()}
-                className="border-2 border-dashed border-[#c3c6d5] rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-[#f3f4f5]/50 hover:bg-[#f3f4f5] transition-colors cursor-pointer active:scale-[0.98]"
-              >
-                <span className="material-symbols-outlined text-[#00327d] text-[40px]">upload_file</span>
-                <p className="font-bold text-[#191c1d]">클릭하여 파일 선택</p>
-                <p className="text-sm text-[#434653]">JPG, PNG, PDF (최대 10MB)</p>
-              </div>
+              <DropZone
+                accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.hwpx"
+                hint="JPG·PNG·PDF·DOC·HWP·HWPX (최대 10MB)"
+                onFile={file => {
+                  setAttachedFile(file);
+                  if (file.type.startsWith('image/')) {
+                    const r = new FileReader(); r.onload = () => setImageBase64(r.result as string); r.readAsDataURL(file);
+                  } else { setImageBase64(''); }
+                }}
+              />
             )}
           </div>
         </div>
