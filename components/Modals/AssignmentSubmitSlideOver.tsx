@@ -24,6 +24,7 @@ function AssignmentDropZone({ onFile, selectedFileName }: { onFile: (f: File) =>
         }
       </div>
       <input ref={ref} type="file" className="hidden" accept=".pdf,.docx,.pptx,.zip,.hwp,.hwpx" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+      <p className="text-xs text-[#737784] mt-1.5 text-center">※ 최대 5MB까지 업로드 가능합니다.</p>
     </div>
   );
 }
@@ -63,7 +64,7 @@ export default function AssignmentSubmitSlideOver() {
   }, [openModal, selectedAssignment?.id]);
 
   const handleFileChange = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) { setError('파일 크기는 5MB 이하만 가능합니다.'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB 이하만 가능합니다.'); return; }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => setFileData(reader.result as string);

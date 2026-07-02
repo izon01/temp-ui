@@ -18,7 +18,10 @@ export async function createNotice(formData: FormData) {
   const content  = String(formData.get('content')  ?? '').trim();
   const category = String(formData.get('category') ?? '공지사항').trim(); // 쉼표 구분 다중값
   const isPinned = formData.get('isPinned') === 'true';
-  const imageUrl = formData.get('imageUrl') ? String(formData.get('imageUrl')) : null;
+  // imageUrl = 이미지 base64, fileData = 비이미지 파일 base64 (둘 다 image_url 컬럼에 저장)
+  const imageUrl = (formData.get('imageUrl') || formData.get('fileData'))
+    ? String(formData.get('imageUrl') ?? formData.get('fileData'))
+    : null;
   const fileName = formData.get('fileName') ? String(formData.get('fileName')) : null;
   const firstCat = category.split(',')[0].trim();
   const icon     = iconMap[firstCat] ?? 'campaign';

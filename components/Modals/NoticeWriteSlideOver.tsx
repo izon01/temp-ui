@@ -8,7 +8,7 @@ import { createNotice } from '@/actions/notices';
 
 const CATEGORIES = ['필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const MAX = 1000;
-const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4MB (Vercel 서버리스 body 한도 내)
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
 
 const ACCEPT = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.hwp,.hwpx';
 
@@ -26,9 +26,10 @@ function NoticeDropZone({ onFile }: { onFile: (f: File) => void }) {
       >
         <span className={`material-symbols-outlined text-[36px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>attach_file</span>
         <p className="text-sm text-[#434653] font-semibold">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
-        <p className="text-xs text-[#737784]">이미지 (JPG·PNG·GIF) · PDF · Word (DOC·DOCX) · 최대 4MB</p>
+        <p className="text-xs text-[#737784]">이미지 (JPG·PNG·GIF) · PDF · Word (DOC·DOCX) · HWP</p>
       </div>
       <input ref={ref} type="file" accept={ACCEPT} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+      <p className="text-xs text-[#737784] mt-1.5 text-center">※ 최대 5MB까지 업로드 가능합니다.</p>
     </div>
   );
 }
@@ -71,7 +72,7 @@ export default function NoticeWriteSlideOver() {
 
   const handleFileChange = (file: File) => {
     if (file.size > MAX_FILE_BYTES) {
-      setError(`파일 크기가 너무 큽니다. 최대 4MB까지 업로드 가능합니다.`);
+      alert('파일 크기는 5MB 이하만 가능합니다.');
       return;
     }
 
@@ -102,8 +103,9 @@ export default function NoticeWriteSlideOver() {
       formData.append('content',  content);
       formData.append('category', categories.join(','));
       formData.append('isPinned', String(isPinned));
-      if (fileData)  formData.append('imageUrl', fileData);
-      if (fileName)  formData.append('fileName', fileName);
+      if (fileData && isImage) formData.append('imageUrl', fileData);
+      if (fileData && !isImage) formData.append('fileData', fileData);
+      if (fileName) formData.append('fileName', fileName);
 
       const result = await createNotice(formData);
       if (result.success) {

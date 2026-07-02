@@ -7,23 +7,32 @@ import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createCommunityPost } from '@/actions/community';
 
+const MAX_FILE = 5 * 1024 * 1024;
+
 function DropZone({ onFile, accept, hint }: { onFile: (f: File) => void; accept: string; hint: string }) {
   const [isDragging, setIsDragging] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+
+  const handleFile = (f: File) => {
+    if (f.size > MAX_FILE) { alert('파일 크기는 5MB 이하만 가능합니다.'); if (ref.current) ref.current.value = ''; return; }
+    onFile(f);
+  };
+
   return (
     <div>
       <div
         onClick={() => ref.current?.click()}
         onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
-        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
+        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
         className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer active:scale-[0.98] ${isDragging ? 'border-[#00327d] bg-[#eef2ff]' : 'border-[#c3c6d5] bg-[#f3f4f5]/50 hover:bg-[#f3f4f5]'}`}
       >
         <span className={`material-symbols-outlined text-[40px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>upload_file</span>
         <p className="font-bold text-[#191c1d]">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
         <p className="text-sm text-[#434653]">{hint}</p>
       </div>
-      <input ref={ref} type="file" accept={accept} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+      <input ref={ref} type="file" accept={accept} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+      <p className="text-xs text-[#737784] mt-1.5 text-center">※ 최대 5MB까지 업로드 가능합니다.</p>
     </div>
   );
 }

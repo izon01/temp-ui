@@ -112,10 +112,11 @@ function FileUploadInput({ onFile, onClear, fileName, compact }: {
         >
           <span className={`material-symbols-outlined text-[40px] ${isDragging ? 'text-[#0047ab]' : 'text-[#00327d]'}`}>upload_file</span>
           <p className="font-bold text-[#191c1d]">{isDragging ? '파일을 여기에 놓으세요' : '클릭하거나 파일을 드래그하세요'}</p>
-          <p className="text-sm text-[#434653]">JPG·PNG·GIF·PDF·DOC·HWP·HWPX (최대 5MB)</p>
+          <p className="text-sm text-[#434653]">JPG·PNG·GIF·PDF·DOC·HWP·HWPX</p>
         </div>
       )}
       <input ref={ref} type="file" accept={ACCEPTED} className="hidden" onChange={handleChange} />
+      {!fileName && <p className="text-xs text-[#737784] mt-1.5 text-center">※ 최대 5MB까지 업로드 가능합니다.</p>}
     </div>
   );
 }
