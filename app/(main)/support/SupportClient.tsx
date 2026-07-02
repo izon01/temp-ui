@@ -350,14 +350,14 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         {/* Header */}
         <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>지원금관리</h1>
-            <p className="text-[#434653] mt-1">서류를 제출하고 검토 현황을 확인하세요.</p>
+            <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>수당신청</h1>
+            <p className="text-[#434653] mt-1">취업준비에 필요한 수당 및 활동비를 간편하게 신청하세요.</p>
           </div>
           {!isAdmin && (
             <button onClick={() => setShowWrite(true)}
               className="hidden md:flex items-center gap-2 bg-[#00327d] text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:bg-[#0047ab] transition-all active:scale-95">
               <span className="material-symbols-outlined">upload_file</span>
-              서류 제출
+              수당 신청
             </button>
           )}
         </header>
@@ -366,18 +366,15 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         <section className="bg-gradient-to-br from-[#eef2ff] to-[#f0f9ff] rounded-2xl px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 shadow-sm border border-[#dae2ff] mb-6">
           <div className="flex flex-col justify-center gap-4">
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#191c1d] leading-tight" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
-              {isAdmin ? '참여자 서류를\n한눈에 관리하세요.' : '서류를 제출하고\n검토 결과를 확인하세요.'}
+              취업 준비를 응원합니다.
             </h2>
             <p className="text-[#434653] text-base md:text-lg leading-relaxed">
-              {isAdmin
-                ? '참여자별 제출 서류를 검토하고 승인 현황을 관리할 수 있습니다.'
-                : '지원금 관련 서류를 제출하고 담당자의 피드백을 받아보세요.'}
+              스펙UP 수당과 구직활동(역량개발)비를 신청하고<br className="hidden md:block" /> 진행 현황을 확인하세요.
             </p>
           </div>
           <div className="flex-shrink-0 flex justify-center md:justify-end">
-            <span className="material-symbols-outlined text-[#00327d] opacity-20" style={{ fontSize: '160px', fontVariationSettings: "'FILL' 1" }}>
-              folder_managed
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/img4.png" alt="수당신청 일러스트" className="w-56 h-56 md:w-72 md:h-72 object-contain opacity-90" />
           </div>
         </section>
 
@@ -453,8 +450,8 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         {filtered.length === 0 ? (
           <div className="py-20 text-center text-[#737784]">
             <span className="material-symbols-outlined text-[48px] block mb-2">folder_open</span>
-            <p className="font-semibold">제출된 서류가 없습니다.</p>
-            {!isAdmin && <p className="text-sm mt-1">상단의 &apos;서류 제출&apos; 버튼을 눌러 제출해 보세요.</p>}
+            <p className="font-semibold">신청 내역이 없습니다.</p>
+            {!isAdmin && <p className="text-sm mt-1">상단의 &apos;수당 신청&apos; 버튼을 눌러 신청해 보세요.</p>}
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-[#e1e3e4] overflow-hidden">
@@ -528,7 +525,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
       </div>
 
       {/* ════════════════════ WRITE SLIDE-OVER ════════════════════ */}
-      <SlideOverBase isOpen={showWrite} onClose={() => { resetWrite(); setShowWrite(false); }} title="서류 제출">
+      <SlideOverBase isOpen={showWrite} onClose={() => { resetWrite(); setShowWrite(false); }} title="수당 신청">
         <div className="flex flex-col min-h-[70vh] md:min-h-0 md:h-full">
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-28">
             {wError && (
