@@ -351,7 +351,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
         {/* Header */}
         <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>수당신청</h1>
+            <h1 className="text-3xl font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>취업지원</h1>
             <p className="text-[#434653] mt-1">취업준비에 필요한 수당 및 활동비를 간편하게 신청하세요.</p>
           </div>
           {!isAdmin && (
@@ -370,7 +370,7 @@ export default function SupportClient({ initialRequests, isAdmin, currentUserId 
               취업 준비를 응원합니다.
             </h2>
             <p className="text-[#434653] text-base md:text-lg leading-relaxed">
-              스펙UP 수당과 구직활동(역량개발)비를 신청하고<br className="hidden md:block" /> 진행 현황을 확인하세요.
+              구직활동(역량개발)비와 스펙UP 수당을 신청하고<br className="hidden md:block" /> 진행현황을 확인하세요!
             </p>
           </div>
           <div className="flex-shrink-0 flex justify-center md:justify-end">

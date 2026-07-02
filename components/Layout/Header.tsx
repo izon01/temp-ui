@@ -11,7 +11,7 @@ const navLinks = [
   { href: '/notices',   label: '공지사항',  adminOnly: false },
   { href: '/education', label: '교육관리',  adminOnly: false },
   { href: '/community', label: '커뮤니티',  adminOnly: false },
-  { href: '/support',   label: '수당신청',   adminOnly: false },
+  { href: '/support',   label: '취업지원',   adminOnly: false },
   { href: '/schedule',  label: '일정',      adminOnly: true  },
 ];
 
