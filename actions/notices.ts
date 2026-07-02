@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 
 const MAX_CONTENT = 1000;
+let noticesSchemaReady = false;
 const iconMap: Record<string, string> = {
   '필독': 'notification_important', '공지사항': 'campaign',
   '취업정보': 'work', '취업활동양식': 'description', '기타': 'info',
@@ -153,8 +154,10 @@ const fetchNoticesCompat = unstable_cache(
 
 export async function getNotices(q?: string) {
   const query = q?.trim() ?? '';
-  // Run migration before fetch so the column exists
-  try { await sql`ALTER TABLE notices ADD COLUMN IF NOT EXISTS file_name TEXT`; } catch { /* ignore */ }
+  if (!noticesSchemaReady) {
+    try { await sql`ALTER TABLE notices ADD COLUMN IF NOT EXISTS file_name TEXT`; } catch { /* ignore */ }
+    noticesSchemaReady = true;
+  }
   try {
     return await fetchNotices(query);
   } catch {

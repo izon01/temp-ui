@@ -4,7 +4,9 @@ import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
+let scheduleTableReady = false;
 async function ensureTable() {
+  if (scheduleTableReady) return;
   await sql`
     CREATE TABLE IF NOT EXISTS schedule_events (
       id         SERIAL PRIMARY KEY,
@@ -13,10 +15,10 @@ async function ensureTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
-  // Add UNIQUE constraint for existing tables without it
   try {
     await sql`ALTER TABLE schedule_events ADD CONSTRAINT schedule_events_date_unique UNIQUE (date)`;
   } catch { /* already exists */ }
+  scheduleTableReady = true;
 }
 
 export async function getScheduleEvents(year: number, month: number) {

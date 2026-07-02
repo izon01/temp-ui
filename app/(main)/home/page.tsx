@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 import { auth } from '@/auth';
 import { getParticipantCount, getParticipantsWithParticipationRate } from '@/actions/participants';
@@ -13,10 +14,8 @@ export default async function HomePage() {
   const userId  = session?.user?.id ?? '';
   const isAdmin = session?.user?.role === 'admin';
 
-  // participants는 통계와 완전히 독립 실행 — 통계 에러가 리스트에 영향 없음
-  const { participants, avgParticipationRate } = await getParticipantsWithParticipationRate();
-
-  const [participantCount, submissionRate, allNotices] = await Promise.all([
+  const [{ participants, avgParticipationRate }, participantCount, submissionRate, allNotices] = await Promise.all([
+    getParticipantsWithParticipationRate(),
     getParticipantCount(),
     isAdmin
       ? getAssignmentSubmissionRate()

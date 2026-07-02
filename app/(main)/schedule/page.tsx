@@ -3,7 +3,8 @@ import { auth } from '@/auth';
 import { getScheduleEvents } from '@/actions/schedule';
 import ScheduleClient from './ScheduleClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const maxDuration = 60;
 
 export default async function SchedulePage() {
   const session = await auth();

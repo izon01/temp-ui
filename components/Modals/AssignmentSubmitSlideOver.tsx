@@ -64,7 +64,7 @@ export default function AssignmentSubmitSlideOver() {
   }, [openModal, selectedAssignment?.id]);
 
   const handleFileChange = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB 이하만 가능합니다.'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB 이하만 가능합니다.'); setFileName(''); setFileData(''); return; }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => setFileData(reader.result as string);

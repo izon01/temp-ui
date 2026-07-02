@@ -6,7 +6,9 @@ import { sql } from '@/lib/db';
 
 const MAX_CONTENT = 2000;
 
+let tablesReady = false;
 async function ensureTables() {
+  if (tablesReady) return;
   await sql`
     CREATE TABLE IF NOT EXISTS support_requests (
       id               SERIAL PRIMARY KEY,
@@ -69,6 +71,7 @@ async function ensureTables() {
         FOREIGN KEY (request_id) REFERENCES support_requests(id) ON DELETE CASCADE
     `;
   } catch { /* already exists */ }
+  tablesReady = true;
 }
 
 export async function getSupportRequests() {
