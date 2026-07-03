@@ -65,9 +65,14 @@ export default function NoticesClient({ initialNotices }: Props) {
     const STORAGE_KEY = 'viewed_notices';
     const viewed: number[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
     if (!viewed.includes(n.id)) {
-      incrementNoticeViews(n.id); // fire & forget
+      // 낙관적 업데이트 먼저, 서버 응답으로 실제 값 동기화
+      setViewCounts(prev => ({ ...prev, [n.id]: (prev[n.id] ?? n.views ?? 0) + 1 }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify([...viewed, n.id]));
-      setViewCounts(prev => ({ ...prev, [n.id]: (prev[n.id] ?? 0) + 1 }));
+      incrementNoticeViews(n.id).then(newViews => {
+        if (newViews !== null) {
+          setViewCounts(prev => ({ ...prev, [n.id]: newViews }));
+        }
+      });
     }
     openNoticeDetail({ ...n, icon: n.icon ?? 'campaign', views: viewCounts[n.id] ?? n.views ?? 0 });
   };

@@ -152,11 +152,16 @@ const fetchNoticesCompat = unstable_cache(
   { tags: ['notices'], revalidate: 86400 }
 );
 
-export async function incrementNoticeViews(id: number) {
+export async function incrementNoticeViews(id: number): Promise<number | null> {
   try {
-    await sql`UPDATE notices SET views = views + 1 WHERE id = ${id}`;
+    const rows = await sql`UPDATE notices SET views = views + 1 WHERE id = ${id} RETURNING views`;
+    const newViews = rows[0]?.views as number ?? null;
+    console.log(`[incrementNoticeViews] id=${id} → views=${newViews}`);
+    revalidatePath('/notices');
+    return newViews;
   } catch (e) {
     console.error('[incrementNoticeViews]', e);
+    return null;
   }
 }
 
