@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useModal } from './ModalContext';
 import SlideOverBase from './SlideOverBase';
-import { deleteNotice, updateNotice } from '@/actions/notices';
+import { deleteNotice, updateNotice, getNoticeDetail } from '@/actions/notices';
 import { useApp } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
 
@@ -23,6 +23,13 @@ export default function NoticeDetailSlideOver() {
   const [editContent, setEditContent] = useState('');
   const [editCategories, setEditCategories] = useState<string[]>([]);
   const [editIsPinned, setEditIsPinned] = useState(false);
+  const [detailImageUrl, setDetailImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (openModal !== 'noticeDetail' || !selectedNotice) { setDetailImageUrl(null); return; }
+    setDetailImageUrl(null);
+    getNoticeDetail(selectedNotice.id).then(d => setDetailImageUrl(d?.imageUrl ?? null));
+  }, [openModal, selectedNotice?.id]);
 
   const enterEditMode = () => {
     if (!selectedNotice) return;
@@ -136,14 +143,14 @@ export default function NoticeDetailSlideOver() {
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {!editMode ? (
               <>
-                {selectedNotice.imageUrl && (
-                  selectedNotice.imageUrl.startsWith('data:image') ? (
+                {detailImageUrl && (
+                  detailImageUrl.startsWith('data:image') ? (
                     <div className="mb-6 rounded-xl overflow-hidden border border-[#e1e3e4]">
-                      <img src={selectedNotice.imageUrl} alt="첨부 이미지" className="w-full object-cover max-h-80" />
+                      <img src={detailImageUrl} alt="첨부 이미지" className="w-full object-cover max-h-80" />
                     </div>
                   ) : (
                     <a
-                      href={selectedNotice.imageUrl}
+                      href={detailImageUrl}
                       download={selectedNotice.fileName ?? '첨부파일'}
                       className="mb-6 flex items-center gap-3 px-4 py-3 bg-[#f3f4f5] border border-[#c3c6d5] rounded-xl hover:bg-[#e7e8e9] transition-colors group"
                     >

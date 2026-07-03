@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useSession } from 'next-auth/react';
 import { useModal } from './ModalContext';
 import SlideOverBase from './SlideOverBase';
-import { getPostComments, addComment, deleteCommunityPost, updateCommunityPost } from '@/actions/community';
+import { getPostComments, addComment, deleteCommunityPost, updateCommunityPost, getCommunityPostDetail } from '@/actions/community';
 import { useApp } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
 
@@ -30,6 +30,7 @@ export default function PostDetailSlideOver() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [detailImageUrl, setDetailImageUrl] = useState<string | null>(null);
 
   const [editMode, setEditMode] = useState(false);
   const [editCategory, setEditCategory] = useState('');
@@ -37,11 +38,16 @@ export default function PostDetailSlideOver() {
   const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
-    if (!selectedPost?.id) { setComments([]); setEditMode(false); return; }
+    if (!selectedPost?.id) { setComments([]); setEditMode(false); setDetailImageUrl(null); return; }
     setEditMode(false);
+    setDetailImageUrl(null);
     startTransition(async () => {
-      const rows = await getPostComments(selectedPost.id);
+      const [rows, detail] = await Promise.all([
+        getPostComments(selectedPost.id),
+        getCommunityPostDetail(selectedPost.id),
+      ]);
       setComments(rows);
+      setDetailImageUrl(detail?.imageUrl ?? null);
     });
   }, [selectedPost?.id]);
 
@@ -174,8 +180,8 @@ export default function PostDetailSlideOver() {
             {!editMode ? (
               <>
                 {selectedPost.hasImage && (
-                  selectedPost.imageUrl
-                    ? <img src={selectedPost.imageUrl} alt="첨부 이미지" className="w-full rounded-xl object-cover max-h-64" />
+                  detailImageUrl
+                    ? <img src={detailImageUrl} alt="첨부 이미지" className="w-full rounded-xl object-cover max-h-64" />
                     : <div className="w-full h-48 bg-[#e1e3e4] rounded-xl flex items-center justify-center">
                         <span className="material-symbols-outlined text-[#737784] text-[60px]">image</span>
                       </div>

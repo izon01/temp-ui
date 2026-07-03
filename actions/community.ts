@@ -6,12 +6,13 @@ import { sql } from '@/lib/db';
 
 const MAX_CONTENT = 1000;
 
+// 목록 조회: image_url(base64) 제외 → Fast Origin Transfer 절감, has_image로 아이콘 표시 유지
 const fetchCommunityPosts = unstable_cache(
   async (query: string) => {
     const rows = query
       ? await sql`
           SELECT id, category, title, content, author_name AS "authorName",
-                 has_image AS "hasImage", image_url AS "imageUrl", comments,
+                 has_image AS "hasImage", comments,
                  TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS date
           FROM community_posts
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
@@ -19,20 +20,30 @@ const fetchCommunityPosts = unstable_cache(
         `
       : await sql`
           SELECT id, category, title, content, author_name AS "authorName",
-                 has_image AS "hasImage", image_url AS "imageUrl", comments,
+                 has_image AS "hasImage", comments,
                  TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD') AS date
           FROM community_posts
           ORDER BY created_at DESC
         `;
     return rows as Array<{
       id: number; category: string; title: string; content: string;
-      authorName: string; hasImage: boolean; imageUrl: string | null;
+      authorName: string; hasImage: boolean; imageUrl: null;
       comments: number; date: string;
     }>;
   },
   ['community-posts'],
   { tags: ['community-posts'], revalidate: 86400 }
 );
+
+export async function getCommunityPostDetail(id: number): Promise<{ imageUrl: string | null } | null> {
+  try {
+    const rows = await sql`SELECT image_url AS "imageUrl" FROM community_posts WHERE id = ${id} LIMIT 1`;
+    return (rows[0] as { imageUrl: string | null }) ?? null;
+  } catch (e) {
+    console.error('[getCommunityPostDetail]', e);
+    return null;
+  }
+}
 
 export async function getCommunityPosts(q?: string) {
   try {

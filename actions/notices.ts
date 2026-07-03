@@ -102,25 +102,26 @@ async function ensureNoticesTable() {
   await sql`ALTER TABLE notices ADD COLUMN IF NOT EXISTS file_name TEXT`;
 }
 
+// 목록 조회: image_url(base64 수백KB) 제외 → Fast Origin Transfer 절감
 const fetchNotices = unstable_cache(
   async (query: string) => {
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
+                 file_name AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
           ORDER BY is_pinned DESC, created_at DESC
         `
       : await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", file_name AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
+                 file_name AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           ORDER BY is_pinned DESC, created_at DESC
         `;
     return rows as Array<{
       id: number; title: string; content: string; category: string;
-      isPinned: boolean; icon: string; views: number; imageUrl: string | null; fileName: string | null; date: string;
+      isPinned: boolean; icon: string; views: number; imageUrl: null; fileName: string | null; date: string;
     }>;
   },
   ['notices'],
@@ -132,20 +133,20 @@ const fetchNoticesCompat = unstable_cache(
     const rows = query
       ? await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
+                 NULL::text AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           WHERE title ILIKE ${'%' + query + '%'} OR content ILIKE ${'%' + query + '%'}
           ORDER BY is_pinned DESC, created_at DESC
         `
       : await sql`
           SELECT id, title, content, category, is_pinned AS "isPinned", icon, views,
-                 image_url AS "imageUrl", NULL::text AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
+                 NULL::text AS "fileName", TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date
           FROM notices
           ORDER BY is_pinned DESC, created_at DESC
         `;
     return rows as Array<{
       id: number; title: string; content: string; category: string;
-      isPinned: boolean; icon: string; views: number; imageUrl: string | null; fileName: string | null; date: string;
+      isPinned: boolean; icon: string; views: number; imageUrl: null; fileName: string | null; date: string;
     }>;
   },
   ['notices-compat'],
@@ -157,10 +158,20 @@ export async function incrementNoticeViews(id: number): Promise<number | null> {
     const rows = await sql`UPDATE notices SET views = views + 1 WHERE id = ${id} RETURNING views`;
     const newViews = rows[0]?.views as number ?? null;
     console.log(`[incrementNoticeViews] id=${id} → views=${newViews}`);
-    revalidatePath('/notices');
     return newViews;
   } catch (e) {
     console.error('[incrementNoticeViews]', e);
+    return null;
+  }
+}
+
+// 상세 열람 시에만 image_url(base64) 조회 → 목록 전송량 절감
+export async function getNoticeDetail(id: number): Promise<{ imageUrl: string | null; fileName: string | null } | null> {
+  try {
+    const rows = await sql`SELECT image_url AS "imageUrl", file_name AS "fileName" FROM notices WHERE id = ${id} LIMIT 1`;
+    return (rows[0] as { imageUrl: string | null; fileName: string | null }) ?? null;
+  } catch (e) {
+    console.error('[getNoticeDetail]', e);
     return null;
   }
 }
