@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 
@@ -37,7 +37,6 @@ export async function createNotice(formData: FormData) {
       VALUES (${title}, ${content}, ${category}, ${isPinned}, ${icon}, ${imageUrl}, ${fileName}, ${session.user.id})
     `;
 
-    revalidateTag('notices');
     revalidatePath('/notices');
     return { success: true };
   } catch (error) {
@@ -62,7 +61,6 @@ export async function updateNotice(id: number, formData: FormData) {
   try {
     await sql`UPDATE notices SET title=${title}, content=${content}, category=${category}, is_pinned=${isPinned}, icon=${icon} WHERE id=${id}`;
 
-    revalidateTag('notices');
     revalidatePath('/notices');
     return { success: true };
   } catch (error) {
@@ -77,7 +75,6 @@ export async function deleteNotice(id: number) {
   try {
     await sql`DELETE FROM notices WHERE id = ${id}`;
 
-    revalidateTag('notices');
     revalidatePath('/notices');
     return { success: true };
   } catch (error) {
