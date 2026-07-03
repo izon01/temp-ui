@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useModal } from '@/components/Modals/ModalContext';
-import { deleteNotice } from '@/actions/notices';
+import { deleteNotice, incrementNoticeViews } from '@/actions/notices';
 import { useApp } from '@/contexts/AppContext';
 
 interface Notice {
@@ -31,6 +31,9 @@ export default function NoticesClient({ initialNotices }: Props) {
   const [activeFilter, setActiveFilter] = useState('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewCounts, setViewCounts] = useState<Record<number, number>>(
+    () => Object.fromEntries(initialNotices.map(n => [n.id, n.views ?? 0]))
+  );
   const [isPending, startTransition] = useTransition();
   const { openNoticeDetail, openWriteNotice } = useModal();
   const { data: session } = useSession();
@@ -56,6 +59,17 @@ export default function NoticesClient({ initialNotices }: Props) {
   const handleFilterChange = (f: string) => {
     setActiveFilter(f);
     setCurrentPage(1);
+  };
+
+  const handleOpenNotice = (n: Notice) => {
+    const STORAGE_KEY = 'viewed_notices';
+    const viewed: number[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    if (!viewed.includes(n.id)) {
+      incrementNoticeViews(n.id); // fire & forget
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...viewed, n.id]));
+      setViewCounts(prev => ({ ...prev, [n.id]: (prev[n.id] ?? 0) + 1 }));
+    }
+    openNoticeDetail({ ...n, icon: n.icon ?? 'campaign', views: viewCounts[n.id] ?? n.views ?? 0 });
   };
 
   const handleSearchChange = (value: string) => {
@@ -174,7 +188,7 @@ export default function NoticesClient({ initialNotices }: Props) {
           paginated.map((n, idx) => (
             <div
               key={n.id}
-              onClick={() => openNoticeDetail({ ...n, icon: n.icon ?? 'campaign', views: n.views ?? 0 })}
+              onClick={() => handleOpenNotice(n)}
               className={`cursor-pointer flex items-center gap-4 p-5 hover:bg-[#f3f4f5] transition-colors ${idx < paginated.length - 1 ? 'border-b border-[#e1e3e4]' : ''} ${n.isPinned ? 'bg-[#ffdad8]/10' : ''}`}
             >
               <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getIconBg(n.category, n.isPinned)}`}>
@@ -194,7 +208,7 @@ export default function NoticesClient({ initialNotices }: Props) {
                   <span className="w-px h-3 bg-[#c3c6d5]" />
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">visibility</span>
-                    {n.views.toLocaleString()}
+                    {(viewCounts[n.id] ?? n.views ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>

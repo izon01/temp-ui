@@ -152,6 +152,14 @@ const fetchNoticesCompat = unstable_cache(
   { tags: ['notices'], revalidate: 86400 }
 );
 
+export async function incrementNoticeViews(id: number) {
+  try {
+    await sql`UPDATE notices SET views = views + 1 WHERE id = ${id}`;
+  } catch (e) {
+    console.error('[incrementNoticeViews]', e);
+  }
+}
+
 export async function getNotices(q?: string) {
   const query = q?.trim() ?? '';
   if (!noticesSchemaReady) {
