@@ -5,7 +5,7 @@ import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createNotice } from '@/actions/notices';
-import { resizeImageToBase64 } from '@/lib/resizeImage';
+import { uploadFile } from '@/lib/uploadFile';
 
 const CATEGORIES = ['필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const MAX = 1000;
@@ -55,7 +55,7 @@ export default function NoticeWriteSlideOver() {
   const [content, setContent]       = useState('');
   const [categories, setCategories] = useState<string[]>(['공지사항']);
   const [isPinned, setIsPinned]     = useState(false);
-  const [fileData, setFileData]     = useState('');        // base64 dataURL
+  const [fileUrl, setFileUrl]       = useState('');        // Blob URL
   const [fileName, setFileName]     = useState('');
   const [fileMime, setFileMime]     = useState('');
   const [fileLoading, setFileLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function NoticeWriteSlideOver() {
 
   const reset = () => {
     setTitle(''); setContent(''); setCategories(['공지사항']);
-    setIsPinned(false); setFileData(''); setFileName(''); setFileMime('');
+    setIsPinned(false); setFileUrl(''); setFileName(''); setFileMime('');
     setFileLoading(false); setError('');
   };
 
@@ -80,21 +80,13 @@ export default function NoticeWriteSlideOver() {
     setFileLoading(true);
     setFileName(file.name);
     setFileMime(file.type);
-
-    if (file.type.startsWith('image/')) {
-      resizeImageToBase64(file)
-        .then(data => { setFileData(data); setFileLoading(false); })
-        .catch(() => { setError('이미지 처리 중 오류가 발생했습니다.'); setFileLoading(false); });
-    } else {
-      const reader = new FileReader();
-      reader.onload  = () => { setFileData(reader.result as string); setFileLoading(false); };
-      reader.onerror = () => { setError('파일 읽기 오류가 발생했습니다.'); setFileLoading(false); };
-      reader.readAsDataURL(file);
-    }
+    uploadFile(file)
+      .then(url => { setFileUrl(url); setFileLoading(false); })
+      .catch(e => { setError(e.message ?? '업로드 오류가 발생했습니다.'); setFileLoading(false); });
   };
 
   const removeFile = () => {
-    setFileData(''); setFileName(''); setFileMime('');
+    setFileUrl(''); setFileName(''); setFileMime('');
   };
 
   const handleSubmit = () => {
@@ -109,8 +101,7 @@ export default function NoticeWriteSlideOver() {
       formData.append('content',  content);
       formData.append('category', categories.join(','));
       formData.append('isPinned', String(isPinned));
-      if (fileData && isImage) formData.append('imageUrl', fileData);
-      if (fileData && !isImage) formData.append('fileData', fileData);
+      if (fileUrl) formData.append('imageUrl', fileUrl);
       if (fileName) formData.append('fileName', fileName);
 
       const result = await createNotice(formData);
@@ -125,6 +116,7 @@ export default function NoticeWriteSlideOver() {
   };
 
   const isImage = fileMime.startsWith('image/');
+  const fileData = fileUrl; // alias for template references below
 
   return (
     <SlideOverBase isOpen={openModal === 'writeNotice'} onClose={() => { reset(); closeModal(); }} title="공지 등록">
@@ -203,7 +195,7 @@ export default function NoticeWriteSlideOver() {
               <div className="border border-[#c3c6d5] rounded-xl overflow-hidden">
                 {isImage ? (
                   <div className="relative">
-                    <img src={fileData} alt="미리보기" className="w-full object-cover max-h-48" />
+                    <img src={fileUrl} alt="미리보기" className="w-full object-cover max-h-48" />
                     <button type="button" onClick={removeFile}
                       className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 transition-colors">
                       <span className="material-symbols-outlined text-[16px]">close</span>

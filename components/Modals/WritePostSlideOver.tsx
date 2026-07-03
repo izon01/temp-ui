@@ -6,7 +6,7 @@ import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createCommunityPost } from '@/actions/community';
-import { resizeImageToBase64 } from '@/lib/resizeImage';
+import { uploadFile } from '@/lib/uploadFile';
 
 const MAX_FILE = 5 * 1024 * 1024;
 
@@ -51,11 +51,12 @@ export default function WritePostSlideOver() {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [imageBase64, setImageBase64] = useState('');
+  const [fileUrl, setFileUrl] = useState('');
+  const [fileUploading, setFileUploading] = useState(false);
 
   const reset = () => {
     setTitle(''); setContent(''); setCategory('자유게시판');
-    setError(''); setAttachedFile(null); setImageBase64('');
+    setError(''); setAttachedFile(null); setFileUrl(''); setFileUploading(false);
   };
 
   const handleSubmit = () => {
@@ -67,7 +68,7 @@ export default function WritePostSlideOver() {
       formData.append('category', category);
       formData.append('title', title);
       formData.append('content', content);
-      if (imageBase64) formData.append('imageUrl', imageBase64);
+      if (fileUrl) formData.append('imageUrl', fileUrl);
       const result = await createCommunityPost(formData);
       if (result.success) { showToast('게시글이 등록되었습니다 ✓'); reset(); closeModal(); }
       else setError(result.error ?? '오류가 발생했습니다.');
@@ -142,12 +143,13 @@ export default function WritePostSlideOver() {
             ) : (
               <DropZone
                 accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.hwpx"
-                hint="JPG·PNG·PDF·DOC·HWP·HWPX (최대 10MB)"
+                hint="JPG·PNG·PDF·DOC·HWP·HWPX (최대 5MB)"
                 onFile={file => {
                   setAttachedFile(file);
-                  if (file.type.startsWith('image/')) {
-                    resizeImageToBase64(file).then(setImageBase64).catch(() => setImageBase64(''));
-                  } else { setImageBase64(''); }
+                  setFileUploading(true);
+                  uploadFile(file)
+                    .then(url => { setFileUrl(url); setFileUploading(false); })
+                    .catch(e => { setError(e.message ?? '업로드 실패'); setFileUploading(false); });
                 }}
               />
             )}

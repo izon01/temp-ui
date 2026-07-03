@@ -9,7 +9,7 @@ import {
   updateSupportStatus, getSupportComments, addSupportComment, deleteSupportComment,
   markSupportRequestViewed,
 } from '@/actions/support';
-import { resizeImageToBase64 } from '@/lib/resizeImage';
+import { uploadFile } from '@/lib/uploadFile';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_CONTENT = 2000;
@@ -39,7 +39,7 @@ interface Props {
 }
 
 function FileAttachment({ url, name }: { url: string; name: string | null }) {
-  const isImage = url.startsWith('data:image');
+  const isImage = url.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(name ?? '');
   if (isImage) {
     return (
       <div className="mt-3 rounded-xl overflow-hidden border border-[#e1e3e4] max-h-60">
@@ -75,15 +75,9 @@ function FileUploadInput({ onFile, onClear, fileName, compact }: {
   const processFile = (file: File) => {
     if (file.size > MAX_FILE_BYTES) { alert('파일 크기는 최대 5MB입니다.'); return; }
     setLoading(true);
-    if (file.type.startsWith('image/')) {
-      resizeImageToBase64(file)
-        .then(data => { onFile(data, file.name); setLoading(false); })
-        .catch(() => setLoading(false));
-    } else {
-      const reader = new FileReader();
-      reader.onload = () => { onFile(reader.result as string, file.name); setLoading(false); };
-      reader.readAsDataURL(file);
-    }
+    uploadFile(file)
+      .then(url => { onFile(url, file.name); setLoading(false); })
+      .catch(() => { alert('업로드에 실패했습니다.'); setLoading(false); });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

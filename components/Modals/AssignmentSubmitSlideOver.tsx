@@ -32,6 +32,7 @@ import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { submitAssignmentAction, getMySubmission } from '@/actions/assignments';
+import { uploadFile } from '@/lib/uploadFile';
 
 export default function AssignmentSubmitSlideOver() {
   const { openModal, closeModal, selectedAssignment } = useModal();
@@ -66,9 +67,10 @@ export default function AssignmentSubmitSlideOver() {
   const handleFileChange = (file: File) => {
     if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB 이하만 가능합니다.'); setFileName(''); setFileData(''); return; }
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => setFileData(reader.result as string);
-    reader.readAsDataURL(file);
+    setFileData('');
+    uploadFile(file)
+      .then(url => setFileData(url))
+      .catch(() => { alert('파일 업로드에 실패했습니다. 다시 시도해주세요.'); setFileName(''); });
   };
 
   const reset = () => { setLink(''); setFileName(''); setFileData(''); setContent(''); setError(''); setExisting(null); setEditMode(false); };
