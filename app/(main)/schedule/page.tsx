@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { getScheduleEvents } from '@/actions/schedule';
 import ScheduleClient from './ScheduleClient';
 
-export const revalidate = 300;
+export const revalidate = false; // 시간 기반 ISR 제거 — upsertScheduleEvent 시 revalidatePath로 즉시 갱신
 export const maxDuration = 60;
 
 export default async function SchedulePage() {
