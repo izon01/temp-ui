@@ -61,6 +61,27 @@ const LEVEL_COLORS = [
   'from-[#eab308] to-[#fde047]',
 ];
 
+function DescriptionText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > 100 || text.includes('\n');
+  return (
+    <div className="space-y-0.5">
+      <p
+        className="text-[#434653] text-sm whitespace-pre-wrap"
+        style={!expanded ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
+      >
+        {text}
+      </p>
+      {isLong && (
+        <button onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+          className="text-xs font-semibold text-[#00327d] hover:underline">
+          {expanded ? '접기 ▲' : '더보기 ▼'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function EducationClient({
   initialAssignments, userName, isAdmin, stats,
   initialAttendanceChecked, adminStats,
@@ -397,7 +418,7 @@ export default function EducationClient({
                         style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>
                         {a.title}
                       </h4>
-                      {a.description && <p className="text-[#434653] text-sm">{a.description}</p>}
+                      {a.description && <DescriptionText text={a.description} />}
                       <p className="text-xs text-[#737784]">기한: {a.deadline}</p>
                     </div>
 
