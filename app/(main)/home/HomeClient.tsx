@@ -48,8 +48,9 @@ interface Props {
 }
 
 function formatLastAccess(dateStr: string): string {
-  // YYYY-MM-DD 형식이 아니면 기록 없음 처리
-  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '기록 없음';
+  if (!dateStr) return '기록 없음';
+  if (dateStr === '오늘') return '오늘'; // 레거시 데이터 호환
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '기록 없음';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '기록 없음';
   const now = new Date();

@@ -62,7 +62,7 @@ export async function checkAttendanceAction() {
       UPDATE participants
       SET attendance  = ${newAttendance},
           status      = ${newStatus},
-          last_access = '오늘'
+          last_access = ${today}
       WHERE id = ${participantId}
     `;
 
