@@ -129,7 +129,7 @@ export default function AssignmentSubmitSlideOver() {
                 )}
               </div>
               <h3 className="font-bold text-[#191c1d]" style={{ fontFamily: 'Be Vietnam Pro, sans-serif' }}>{selectedAssignment.title}</h3>
-              <p className="text-sm text-[#434653]">{selectedAssignment.description}</p>
+              <p className="text-sm text-[#434653] whitespace-pre-wrap break-words">{selectedAssignment.description}</p>
               <p className="text-xs text-[#737784]">마감일: {selectedAssignment.deadline}</p>
             </div>
 
