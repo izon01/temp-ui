@@ -77,9 +77,9 @@ export default function AssignmentSubmissionsSlideOver() {
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs text-[#737784]">{s.submittedAt}</p>
                     <div className="flex items-center gap-1 justify-end mt-0.5">
-                      {s.content  && <span className="material-symbols-outlined text-[14px] text-[#434653]">description</span>}
-                      {s.fileName && <span className="material-symbols-outlined text-[14px] text-[#434653]">attach_file</span>}
-                      {s.link     && <span className="material-symbols-outlined text-[14px] text-[#434653]">link</span>}
+                      {s.content?.trim()               && <span className="material-symbols-outlined text-[14px] text-[#434653]">description</span>}
+                      {s.fileName?.trim() && s.fileData && <span className="material-symbols-outlined text-[14px] text-[#434653]">attach_file</span>}
+                      {s.link?.trim()                  && <span className="material-symbols-outlined text-[14px] text-[#434653]">link</span>}
                     </div>
                   </div>
                   <span className="material-symbols-outlined text-[#737784] text-[20px] flex-shrink-0 transition-transform" style={{ transform: expanded === s.id ? 'rotate(180deg)' : '' }}>
