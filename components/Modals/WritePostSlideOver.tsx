@@ -134,7 +134,7 @@ export default function WritePostSlideOver() {
                 <span className="text-sm font-semibold text-[#191c1d] flex-1 truncate">{attachedFile.name}</span>
                 <button
                   type="button"
-                  onClick={() => { setAttachedFile(null); setImageBase64(''); }}
+                  onClick={() => { setAttachedFile(null); setFileUrl(''); }}
                   className="text-[#434653] hover:text-[#b7102a] transition-colors"
                 >
                   <span className="material-symbols-outlined text-[20px]">close</span>
