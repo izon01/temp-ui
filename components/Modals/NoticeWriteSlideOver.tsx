@@ -5,6 +5,7 @@ import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createNotice } from '@/actions/notices';
+import { resizeImageToBase64 } from '@/lib/resizeImage';
 
 const CATEGORIES = ['필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 const MAX = 1000;
@@ -75,16 +76,21 @@ export default function NoticeWriteSlideOver() {
       alert('파일 크기는 5MB 이하만 가능합니다.');
       return;
     }
-
     setError('');
     setFileLoading(true);
     setFileName(file.name);
     setFileMime(file.type);
 
-    const reader = new FileReader();
-    reader.onload  = () => { setFileData(reader.result as string); setFileLoading(false); };
-    reader.onerror = () => { setError('파일 읽기 오류가 발생했습니다.'); setFileLoading(false); };
-    reader.readAsDataURL(file);
+    if (file.type.startsWith('image/')) {
+      resizeImageToBase64(file)
+        .then(data => { setFileData(data); setFileLoading(false); })
+        .catch(() => { setError('이미지 처리 중 오류가 발생했습니다.'); setFileLoading(false); });
+    } else {
+      const reader = new FileReader();
+      reader.onload  = () => { setFileData(reader.result as string); setFileLoading(false); };
+      reader.onerror = () => { setError('파일 읽기 오류가 발생했습니다.'); setFileLoading(false); };
+      reader.readAsDataURL(file);
+    }
   };
 
   const removeFile = () => {

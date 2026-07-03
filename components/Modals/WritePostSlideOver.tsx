@@ -6,6 +6,7 @@ import { useModal } from './ModalContext';
 import { useApp } from '@/contexts/AppContext';
 import SlideOverBase from './SlideOverBase';
 import { createCommunityPost } from '@/actions/community';
+import { resizeImageToBase64 } from '@/lib/resizeImage';
 
 const MAX_FILE = 5 * 1024 * 1024;
 
@@ -145,7 +146,7 @@ export default function WritePostSlideOver() {
                 onFile={file => {
                   setAttachedFile(file);
                   if (file.type.startsWith('image/')) {
-                    const r = new FileReader(); r.onload = () => setImageBase64(r.result as string); r.readAsDataURL(file);
+                    resizeImageToBase64(file).then(setImageBase64).catch(() => setImageBase64(''));
                   } else { setImageBase64(''); }
                 }}
               />

@@ -9,6 +9,7 @@ import {
   updateSupportStatus, getSupportComments, addSupportComment, deleteSupportComment,
   markSupportRequestViewed,
 } from '@/actions/support';
+import { resizeImageToBase64 } from '@/lib/resizeImage';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_CONTENT = 2000;
@@ -74,9 +75,15 @@ function FileUploadInput({ onFile, onClear, fileName, compact }: {
   const processFile = (file: File) => {
     if (file.size > MAX_FILE_BYTES) { alert('파일 크기는 최대 5MB입니다.'); return; }
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = () => { onFile(reader.result as string, file.name); setLoading(false); };
-    reader.readAsDataURL(file);
+    if (file.type.startsWith('image/')) {
+      resizeImageToBase64(file)
+        .then(data => { onFile(data, file.name); setLoading(false); })
+        .catch(() => setLoading(false));
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => { onFile(reader.result as string, file.name); setLoading(false); };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
