@@ -3,22 +3,27 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useModal } from './ModalContext';
+import { sendPasswordResetEmail } from '@/actions/password';
 
 export default function ForgotPasswordModal() {
   const { openModal, closeModal } = useModal();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
   const isOpen = openModal === 'forgotPassword';
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError(''); setLoading(true);
+    const result = await sendPasswordResetEmail(email);
+    setLoading(false);
+    if (result.success) {
       setSent(true);
-      setTimeout(() => { setSent(false); closeModal(); }, 1500);
-    }, 1500);
+      setTimeout(() => { setSent(false); setEmail(''); closeModal(); }, 2000);
+    } else {
+      setError(result.error ?? '오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -43,6 +48,11 @@ export default function ForgotPasswordModal() {
             </div>
 
             <div className="px-6 py-4">
+              {error && (
+                <div className="bg-[#ffdad6] text-[#93000a] text-sm px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-[18px]">error</span>{error}
+                </div>
+              )}
               <p className="text-[#434653] mb-6">
                 가입하신 이메일 주소를 입력하시면,<br />임시 비밀번호를 이메일로 보내드립니다.
               </p>
