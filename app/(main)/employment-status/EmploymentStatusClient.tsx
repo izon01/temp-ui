@@ -33,7 +33,7 @@ export default function EmploymentStatusClient({ initialRecords, isAdmin }: Prop
   }, []);
 
   const filtered = initialRecords
-    .filter(r => !search || r.name.includes(search) || r.company.includes(search))
+    .filter(r => !search || r.company.includes(search) || r.department.includes(search))
     .filter(r => filterCohort === '전체' || r.cohort === filterCohort);
 
   return (
@@ -79,7 +79,7 @@ export default function EmploymentStatusClient({ initialRecords, isAdmin }: Prop
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="이름 또는 기업명으로 검색"
+            placeholder="기업명 또는 취업부서로 검색"
             className="w-full bg-white border border-[#c3c6d5] focus:border-[#00327d] rounded-lg pl-12 pr-10 py-3 outline-none transition-all text-sm"
           />
           {search && (
