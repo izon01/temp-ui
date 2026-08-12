@@ -174,63 +174,35 @@ export default function EmploymentStatusClient({ initialRecords, isAdmin }: Prop
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-[#e1e3e4] overflow-hidden shadow-sm">
+        <div className="grid grid-cols-1 gap-3">
+          {filtered.map(r => (
+            <div
+              key={r.id}
+              onClick={() => openEmploymentDetail(r)}
+              className="bg-white p-4 rounded-xl shadow-sm border border-transparent hover:border-[#00327d]/20 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer active:scale-[0.99]"
+            >
+              {/* 아바타 */}
+              <div className="w-12 h-12 rounded-full bg-[#dae2ff] flex items-center justify-center text-[#00327d] text-xl font-bold flex-shrink-0">
+                {r.name[0]}
+              </div>
 
-          {/* 테이블 헤더 */}
-          <div className="hidden md:grid grid-cols-[80px_1fr_1.5fr_1.5fr_40px] gap-4 px-5 py-3 bg-[#f3f4f5] border-b border-[#e1e3e4] text-xs font-bold text-[#737784] uppercase tracking-wider">
-            <span>기수</span>
-            <span>이름</span>
-            <span>취업기업</span>
-            <span>취업부서</span>
-            <span />
-          </div>
-
-          {/* 리스트 행 */}
-          <ul className="divide-y divide-[#f3f4f5]">
-            {filtered.map(r => (
-              <li key={r.id}>
-                {/* 데스크톱: 그리드 행 */}
-                <button
-                  onClick={() => openEmploymentDetail(r)}
-                  className="hidden md:grid grid-cols-[80px_1fr_1.5fr_1.5fr_40px] gap-4 w-full px-5 py-4 items-center text-left hover:bg-[#f8f9fa] transition-colors group"
-                >
-                  <span className="inline-flex">
-                    <span className="bg-[#dae2ff] text-[#001946] text-xs px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
-                      {r.cohort}
-                    </span>
+              {/* 텍스트 정보 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-lg font-bold text-[#191c1d]">{r.name}</span>
+                  <span className="bg-[#dae2ff] text-[#001946] text-[11px] px-2 py-0.5 rounded-full font-bold flex-shrink-0">
+                    {r.cohort}
                   </span>
-                  <span className="font-semibold text-[#191c1d] text-sm">{r.name}</span>
-                  <span className="text-sm text-[#434653] truncate">{r.company}</span>
-                  <span className="text-sm text-[#434653] truncate">{r.department || '—'}</span>
-                  <span className="material-symbols-outlined text-[#c3c6d5] group-hover:text-[#00327d] transition-colors text-[20px] justify-self-center">
-                    chevron_right
-                  </span>
-                </button>
+                </div>
+                <p className="text-sm text-[#737784] mt-0.5 truncate">
+                  {r.company}{r.department ? ` | ${r.department}` : ''}
+                </p>
+              </div>
 
-                {/* 모바일: 카드형 */}
-                <button
-                  onClick={() => openEmploymentDetail(r)}
-                  className="md:hidden flex items-center gap-4 w-full px-4 py-4 text-left hover:bg-[#f8f9fa] transition-colors"
-                >
-                  <div className="w-11 h-11 rounded-full bg-[#dae2ff] flex items-center justify-center text-[#00327d] font-bold flex-shrink-0">
-                    {r.name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-semibold text-[#191c1d] text-sm">{r.name}</span>
-                      <span className="bg-[#dae2ff] text-[#001946] text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">
-                        {r.cohort}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#434653] truncate">
-                      {r.company}{r.department ? ` | ${r.department}` : ''}
-                    </p>
-                  </div>
-                  <span className="material-symbols-outlined text-[#c3c6d5] flex-shrink-0">chevron_right</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+              {/* 꺾쇠 */}
+              <span className="material-symbols-outlined text-[#c3c6d5] flex-shrink-0">chevron_right</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
