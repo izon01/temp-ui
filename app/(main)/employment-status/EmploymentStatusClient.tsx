@@ -174,35 +174,74 @@ export default function EmploymentStatusClient({ initialRecords, isAdmin }: Prop
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {filtered.map(r => (
-            <div
-              key={r.id}
-              onClick={() => openEmploymentDetail(r)}
-              className="bg-white p-4 rounded-xl shadow-sm border border-transparent hover:border-[#00327d]/20 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer active:scale-[0.99]"
-            >
-              {/* 아바타 */}
-              <div className="w-12 h-12 rounded-full bg-[#dae2ff] flex items-center justify-center text-[#00327d] text-xl font-bold flex-shrink-0">
-                {r.name[0]}
-              </div>
+        <div>
+          {/* 머리글 행 */}
+          <div className="hidden md:grid grid-cols-[100px_1fr_1.4fr_1.4fr_44px] gap-4 px-5 py-2.5 mb-2 bg-[#f8f9fa] rounded-lg border border-[#e1e3e4]">
+            <span className="text-xs font-medium text-[#737784]">기수</span>
+            <span className="text-xs font-medium text-[#737784]">이름</span>
+            <span className="text-xs font-medium text-[#737784]">취업기업</span>
+            <span className="text-xs font-medium text-[#737784]">취업부서</span>
+            <span />
+          </div>
 
-              {/* 텍스트 정보 */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-lg font-bold text-[#191c1d]">{r.name}</span>
-                  <span className="bg-[#dae2ff] text-[#001946] text-[11px] px-2 py-0.5 rounded-full font-bold flex-shrink-0">
-                    {r.cohort}
+          {/* 데이터 행 */}
+          <div className="flex flex-col gap-2">
+            {filtered.map(r => (
+              <div
+                key={r.id}
+                onClick={() => openEmploymentDetail(r)}
+                className="bg-white border border-[#f0f0f0] rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-[#dae2ff] transition-all cursor-pointer active:scale-[0.99]"
+              >
+                {/* 데스크톱: 그리드 열 정렬 */}
+                <div className="hidden md:grid grid-cols-[100px_1fr_1.4fr_1.4fr_44px] gap-4 items-center px-5 py-4">
+                  {/* 기수 뱃지 */}
+                  <span className="inline-flex">
+                    <span className="bg-[#dae2ff] text-[#001946] text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">
+                      {r.cohort}
+                    </span>
+                  </span>
+
+                  {/* 이름 + 아바타 */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-[#dae2ff] flex items-center justify-center text-[#00327d] font-bold text-sm flex-shrink-0">
+                      {r.name[0]}
+                    </div>
+                    <span className="font-bold text-[#191c1d] truncate">{r.name}</span>
+                  </div>
+
+                  {/* 취업기업 */}
+                  <span className="text-sm text-[#434653] truncate">{r.company}</span>
+
+                  {/* 취업부서 */}
+                  <span className="text-sm text-[#737784] truncate">{r.department || '—'}</span>
+
+                  {/* 꺾쇠 */}
+                  <span className="material-symbols-outlined text-[#c3c6d5] text-[20px] justify-self-center">
+                    chevron_right
                   </span>
                 </div>
-                <p className="text-sm text-[#737784] mt-0.5 truncate">
-                  {r.company}{r.department ? ` | ${r.department}` : ''}
-                </p>
-              </div>
 
-              {/* 꺾쇠 */}
-              <span className="material-symbols-outlined text-[#c3c6d5] flex-shrink-0">chevron_right</span>
-            </div>
-          ))}
+                {/* 모바일: 카드형 */}
+                <div className="md:hidden flex items-center gap-3 px-4 py-4">
+                  <div className="w-11 h-11 rounded-full bg-[#dae2ff] flex items-center justify-center text-[#00327d] font-bold flex-shrink-0">
+                    {r.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-bold text-[#191c1d]">{r.name}</span>
+                      <span className="bg-[#dae2ff] text-[#001946] text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0">
+                        {r.cohort}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#737784] truncate">
+                      {r.company}{r.department ? ` | ${r.department}` : ''}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined text-[#c3c6d5] flex-shrink-0">chevron_right</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
