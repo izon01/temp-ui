@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
+import type { EmploymentRecord } from '@/actions/employment';
 
 export interface SelectedPost {
   id: number; category: string; title: string; content: string;
@@ -28,7 +29,9 @@ type ModalType =
   | 'forgotPassword' | 'postDetail' | 'noticeDetail' | 'profile'
   | 'write' | 'writeNotice' | 'submitAssignment' | 'writeAssignment'
   | 'editAssignment' | 'assignmentSubmissions'
-  | 'participantProfile' | null;
+  | 'participantProfile'
+  | 'employmentDetail' | 'employmentWrite'
+  | null;
 
 interface ModalContextValue {
   openModal: ModalType;
@@ -36,6 +39,8 @@ interface ModalContextValue {
   selectedNotice: NoticeDetail | null;
   selectedAssignment: SelectedAssignment | null;
   selectedParticipant: SelectedParticipant | null;
+  selectedEmployment: EmploymentRecord | null;
+  selectedEmploymentEdit: EmploymentRecord | null;
   openForgotPassword: () => void;
   openPostDetail: (post: SelectedPost) => void;
   openNoticeDetail: (notice: NoticeDetail) => void;
@@ -47,6 +52,8 @@ interface ModalContextValue {
   openEditAssignment: (assignment: SelectedAssignment) => void;
   openAssignmentSubmissions: (assignment: SelectedAssignment) => void;
   openParticipantProfile: (participant: SelectedParticipant) => void;
+  openEmploymentDetail: (record: EmploymentRecord) => void;
+  openEmploymentWrite: (record: EmploymentRecord | null) => void;
   closeModal: () => void;
 }
 
@@ -58,12 +65,15 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const [selectedNotice, setSelectedNotice] = useState<NoticeDetail | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<SelectedAssignment | null>(null);
   const [selectedParticipant, setSelectedParticipant] = useState<SelectedParticipant | null>(null);
+  const [selectedEmployment, setSelectedEmployment] = useState<EmploymentRecord | null>(null);
+  const [selectedEmploymentEdit, setSelectedEmploymentEdit] = useState<EmploymentRecord | null>(null);
 
   const closeModal = () => setOpenModal(null);
 
   return (
     <ModalContext.Provider value={{
       openModal, selectedPost, selectedNotice, selectedAssignment, selectedParticipant,
+      selectedEmployment, selectedEmploymentEdit,
       openForgotPassword: () => setOpenModal('forgotPassword'),
       openPostDetail: (post) => { setSelectedPost(post); setOpenModal('postDetail'); },
       openNoticeDetail: (notice) => { setSelectedNotice(notice); setOpenModal('noticeDetail'); },
@@ -75,6 +85,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       openEditAssignment: (a) => { setSelectedAssignment(a); setOpenModal('editAssignment'); },
       openAssignmentSubmissions: (a) => { setSelectedAssignment(a); setOpenModal('assignmentSubmissions'); },
       openParticipantProfile: (p) => { setSelectedParticipant(p); setOpenModal('participantProfile'); },
+      openEmploymentDetail: (r) => { setSelectedEmployment(r); setOpenModal('employmentDetail'); },
+      openEmploymentWrite: (r) => { setSelectedEmploymentEdit(r); setOpenModal('employmentWrite'); },
       closeModal,
     }}>
       {children}

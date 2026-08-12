@@ -11,8 +11,9 @@ const navLinks = [
   { href: '/notices',   label: '공지사항',  adminOnly: false },
   { href: '/education', label: '교육관리',  adminOnly: false },
   { href: '/community', label: '커뮤니티',  adminOnly: false },
-  { href: '/support',   label: '취업지원',   adminOnly: false },
-  { href: '/schedule',  label: '일정',      adminOnly: true  },
+  { href: '/support',            label: '취업지원',   adminOnly: false },
+  { href: '/employment-status', label: '취업현황',   adminOnly: false },
+  { href: '/schedule',          label: '일정',      adminOnly: true  },
 ];
 
 export default function Header() {

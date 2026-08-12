@@ -9,8 +9,9 @@ const tabs = [
   { href: '/notices',   label: '공지사항', icon: 'campaign',    adminOnly: false },
   { href: '/education', label: '교육관리', icon: 'school',      adminOnly: false },
   { href: '/community', label: '커뮤니티',  icon: 'chat_bubble',    adminOnly: false },
-  { href: '/support',   label: '지원금관리', icon: 'attach_money',  adminOnly: false },
-  { href: '/schedule',  label: '일정',      icon: 'calendar_month', adminOnly: true  },
+  { href: '/support',            label: '취업지원',  icon: 'attach_money',     adminOnly: false },
+  { href: '/employment-status', label: '취업현황',  icon: 'workspace_premium', adminOnly: false },
+  { href: '/schedule',          label: '일정',     icon: 'calendar_month',    adminOnly: true  },
 ];
 
 export default function BottomNav() {
