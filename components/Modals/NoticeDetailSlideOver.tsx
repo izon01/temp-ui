@@ -8,6 +8,26 @@ import { deleteNotice, updateNotice, getNoticeDetail } from '@/actions/notices';
 import { useApp } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
 
+const URL_SPLIT = /(https?:\/\/[^\s]+)/g;
+const URL_TEST  = /^https?:\/\//;
+
+function LinkedText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(URL_SPLIT).map((part, i) =>
+        URL_TEST.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+            className="text-blue-600 hover:underline break-all">
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
 const NOTICE_CATEGORIES = ['필독', '공지사항', '취업정보', '취업활동양식', '기타'];
 
 export default function NoticeDetailSlideOver() {
@@ -166,7 +186,7 @@ export default function NoticeDetailSlideOver() {
                   )
                 )}
                 <div className="text-[#434653] leading-relaxed whitespace-pre-wrap text-[15px]">
-                  {selectedNotice.content ?? '내용이 없습니다.'}
+                  <LinkedText text={selectedNotice.content ?? '내용이 없습니다.'} />
                 </div>
               </>
             ) : (
