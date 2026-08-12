@@ -201,13 +201,8 @@ export default function EmploymentStatusClient({ initialRecords, isAdmin }: Prop
                     </span>
                   </span>
 
-                  {/* 이름 + 아바타 */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-[#dae2ff] flex items-center justify-center text-[#00327d] font-bold text-sm flex-shrink-0">
-                      {r.name[0]}
-                    </div>
-                    <span className="font-bold text-[#191c1d] truncate">{r.name}</span>
-                  </div>
+                  {/* 이름 */}
+                  <span className="font-bold text-[#191c1d] truncate">{r.name}</span>
 
                   {/* 취업기업 */}
                   <span className="text-sm text-[#434653] truncate">{r.company}</span>
